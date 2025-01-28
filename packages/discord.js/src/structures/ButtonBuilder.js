@@ -1,8 +1,9 @@
 'use strict';
 
-const { ButtonBuilder: BuildersButton, isJSONEncodable } = require('@discordjs/builders');
-const { toSnakeCase } = require('../util/Transformers');
-const { resolvePartialEmoji } = require('../util/Util');
+const { ButtonBuilder: BuildersButton } = require('@discordjs/builders');
+const { isJSONEncodable } = require('@discordjs/util');
+const { toSnakeCase } = require('../util/Transformers.js');
+const { resolvePartialEmoji } = require('../util/Util.js');
 
 /**
  * Represents a button builder.
@@ -35,7 +36,7 @@ class ButtonBuilder extends BuildersButton {
   }
 }
 
-module.exports = ButtonBuilder;
+exports.ButtonBuilder = ButtonBuilder;
 
 /**
  * @external BuildersButton

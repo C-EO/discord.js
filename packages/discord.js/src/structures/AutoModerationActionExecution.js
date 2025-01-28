@@ -1,6 +1,6 @@
 'use strict';
 
-const { _transformAPIAutoModerationAction } = require('../util/Transformers');
+const { _transformAPIAutoModerationAction } = require('../util/Transformers.js');
 
 /**
  * Represents the structure of an executed action when an {@link AutoModerationRule} is triggered.
@@ -87,7 +87,7 @@ class AutoModerationActionExecution {
 
   /**
    * The channel where this action was triggered from.
-   * @type {?TextBasedChannel}
+   * @type {?(GuildTextBasedChannel|ForumChannel|MediaChannel)}
    * @readonly
    */
   get channel() {
@@ -113,4 +113,4 @@ class AutoModerationActionExecution {
   }
 }
 
-module.exports = AutoModerationActionExecution;
+exports.AutoModerationActionExecution = AutoModerationActionExecution;

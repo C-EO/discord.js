@@ -1,9 +1,9 @@
 'use strict';
 
 const { Routes } = require('discord-api-types/v10');
-const CachedManager = require('./CachedManager');
-const { DiscordjsTypeError, DiscordjsError, ErrorCodes } = require('../errors');
-const { StageInstance } = require('../structures/StageInstance');
+const { CachedManager } = require('./CachedManager.js');
+const { DiscordjsTypeError, DiscordjsError, ErrorCodes } = require('../errors/index.js');
+const { StageInstance } = require('../structures/StageInstance.js');
 
 /**
  * Manages API methods for {@link StageInstance} objects and holds their cache.
@@ -32,6 +32,8 @@ class StageInstanceManager extends CachedManager {
    * @property {string} topic The topic of the stage instance
    * @property {StageInstancePrivacyLevel} [privacyLevel] The privacy level of the stage instance
    * @property {boolean} [sendStartNotification] Whether to notify `@everyone` that the stage instance has started
+   * @property {GuildScheduledEventResolvable} [guildScheduledEvent]
+   * The guild scheduled event associated with the stage instance
    */
 
   /**
@@ -59,7 +61,9 @@ class StageInstanceManager extends CachedManager {
     const channelId = this.guild.channels.resolveId(channel);
     if (!channelId) throw new DiscordjsError(ErrorCodes.StageChannelResolve);
     if (typeof options !== 'object') throw new DiscordjsTypeError(ErrorCodes.InvalidType, 'options', 'object', true);
-    let { topic, privacyLevel, sendStartNotification } = options;
+    const { guildScheduledEvent, topic, privacyLevel, sendStartNotification } = options;
+
+    const guildScheduledEventId = guildScheduledEvent && this.resolveId(guildScheduledEvent);
 
     const data = await this.client.rest.post(Routes.stageInstances(), {
       body: {
@@ -67,6 +71,7 @@ class StageInstanceManager extends CachedManager {
         topic,
         privacy_level: privacyLevel,
         send_start_notification: sendStartNotification,
+        guild_scheduled_event_id: guildScheduledEventId,
       },
     });
 
@@ -151,4 +156,4 @@ class StageInstanceManager extends CachedManager {
   }
 }
 
-module.exports = StageInstanceManager;
+exports.StageInstanceManager = StageInstanceManager;

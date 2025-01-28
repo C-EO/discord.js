@@ -2,8 +2,8 @@
 
 const { Collection } = require('@discordjs/collection');
 const { DiscordSnowflake } = require('@sapphire/snowflake');
-const Base = require('./Base');
-const { Sticker } = require('./Sticker');
+const { Base } = require('./Base.js');
+const { Sticker } = require('./Sticker.js');
 
 /**
  * Represents a pack of standard stickers.
@@ -22,7 +22,7 @@ class StickerPack extends Base {
      * The stickers in the pack
      * @type {Collection<Snowflake, Sticker>}
      */
-    this.stickers = new Collection(pack.stickers.map(s => [s.id, new Sticker(client, s)]));
+    this.stickers = new Collection(pack.stickers.map(sticker => [sticker.id, new Sticker(client, sticker)]));
 
     /**
      * The name of the sticker pack
@@ -92,4 +92,4 @@ class StickerPack extends Base {
   }
 }
 
-module.exports = StickerPack;
+exports.StickerPack = StickerPack;

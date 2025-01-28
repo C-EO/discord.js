@@ -1,11 +1,11 @@
 'use strict';
 
-const { createEnum } = require('./Enums');
+const { createEnum } = require('./Enums.js');
 
 /**
  * The enumeration for partials.
  * ```js
- * const { Client, Partials } = require('discord.js');
+ * import { Client, Partials } from 'discord.js';
  *
  * const client = new Client({
  *   intents: [
@@ -33,7 +33,7 @@ const { createEnum } = require('./Enums');
  * @type {Partials}
  * @ignore
  */
-module.exports = createEnum([
+exports.Partials = createEnum([
   'User',
   'Channel',
   'GuildMember',

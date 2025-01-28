@@ -3,9 +3,9 @@
 const { DiscordSnowflake } = require('@sapphire/snowflake');
 const { ApplicationCommandOptionType } = require('discord-api-types/v10');
 const isEqual = require('fast-deep-equal');
-const Base = require('./Base');
-const ApplicationCommandPermissionsManager = require('../managers/ApplicationCommandPermissionsManager');
-const PermissionsBitField = require('../util/PermissionsBitField');
+const { Base } = require('./Base.js');
+const { ApplicationCommandPermissionsManager } = require('../managers/ApplicationCommandPermissionsManager.js');
+const { PermissionsBitField } = require('../util/PermissionsBitField.js');
 
 /**
  * Represents an application command.
@@ -123,7 +123,7 @@ class ApplicationCommand extends Base {
        * The options of this command
        * @type {ApplicationCommandOption[]}
        */
-      this.options = data.options.map(o => this.constructor.transformOption(o, true));
+      this.options = data.options.map(option => this.constructor.transformOption(option, true));
     } else {
       this.options ??= [];
     }
@@ -140,15 +140,26 @@ class ApplicationCommand extends Base {
       this.defaultMemberPermissions ??= null;
     }
 
-    if ('dm_permission' in data) {
+    if ('integration_types' in data) {
       /**
-       * Whether the command can be used in DMs
-       * <info>This property is always `null` on guild commands</info>
-       * @type {boolean|null}
+       * Installation context(s) where the command is available
+       * <info>Only for globally-scoped commands</info>
+       * @type {?ApplicationIntegrationType[]}
        */
-      this.dmPermission = data.dm_permission;
+      this.integrationTypes = data.integration_types;
     } else {
-      this.dmPermission ??= null;
+      this.integrationTypes ??= null;
+    }
+
+    if ('contexts' in data) {
+      /**
+       * Interaction context(s) where the command can be used
+       * <info>Only for globally-scoped commands</info>
+       * @type {?InteractionContextType[]}
+       */
+      this.contexts = data.contexts;
+    } else {
+      this.contexts ??= null;
     }
 
     if ('version' in data) {
@@ -201,7 +212,6 @@ class ApplicationCommand extends Base {
    * @property {ApplicationCommandOptionData[]} [options] Options for the command
    * @property {?PermissionResolvable} [defaultMemberPermissions] The bitfield used to determine the default permissions
    * a member needs in order to run the command
-   * @property {boolean} [dmPermission] Whether the command is enabled in DMs
    */
 
   /**
@@ -319,15 +329,6 @@ class ApplicationCommand extends Base {
   }
 
   /**
-   * Edits the DM permission of this ApplicationCommand
-   * @param {boolean} [dmPermission=true] Whether the command can be used in DMs
-   * @returns {Promise<ApplicationCommand>}
-   */
-  setDMPermission(dmPermission = true) {
-    return this.edit({ dmPermission });
-  }
-
-  /**
    * Edits the options of this ApplicationCommand
    * @param {ApplicationCommandOptionData[]} options The options to set for this command
    * @returns {Promise<ApplicationCommand>}
@@ -363,7 +364,6 @@ class ApplicationCommand extends Base {
     if (command.id && this.id !== command.id) return false;
 
     let defaultMemberPermissions = null;
-    let dmPermission = command.dmPermission ?? command.dm_permission;
 
     if ('default_member_permissions' in command) {
       defaultMemberPermissions = command.default_member_permissions
@@ -389,12 +389,13 @@ class ApplicationCommand extends Base {
       // TODO: remove ?? 0 on each when nullable
       (command.options?.length ?? 0) !== (this.options?.length ?? 0) ||
       defaultMemberPermissions !== (this.defaultMemberPermissions?.bitfield ?? null) ||
-      (dmPermission !== undefined && dmPermission !== this.dmPermission) ||
       !isEqual(command.nameLocalizations ?? command.name_localizations ?? {}, this.nameLocalizations ?? {}) ||
       !isEqual(
         command.descriptionLocalizations ?? command.description_localizations ?? {},
         this.descriptionLocalizations ?? {},
-      )
+      ) ||
+      !isEqual(command.integrationTypes ?? command.integration_types ?? [], this.integrationTypes ?? []) ||
+      !isEqual(command.contexts ?? [], this.contexts ?? [])
     ) {
       return false;
     }
@@ -577,7 +578,7 @@ class ApplicationCommand extends Base {
         [nameLocalizationsKey]: choice.nameLocalizations ?? choice.name_localizations,
         value: choice.value,
       })),
-      options: option.options?.map(o => this.transformOption(o, received)),
+      options: option.options?.map(opt => this.transformOption(opt, received)),
       [channelTypesKey]: option.channelTypes ?? option.channel_types,
       [minValueKey]: option.minValue ?? option.min_value,
       [maxValueKey]: option.maxValue ?? option.max_value,
@@ -587,19 +588,9 @@ class ApplicationCommand extends Base {
   }
 }
 
-module.exports = ApplicationCommand;
+exports.ApplicationCommand = ApplicationCommand;
 
 /* eslint-disable max-len */
-/**
- * @external APIApplicationCommand
- * @see {@link https://discord.com/developers/docs/interactions/application-commands#application-command-object-application-command-structure}
- */
-
-/**
- * @external APIApplicationCommandOption
- * @see {@link https://discord.com/developers/docs/interactions/application-commands#application-command-object-application-command-option-structure}
- */
-
 /**
  * @external ApplicationCommandOptionAllowedChannelTypes
  * @see {@link https://discord.js.org/docs/packages/builders/stable/ApplicationCommandOptionAllowedChannelTypes:TypeAlias}

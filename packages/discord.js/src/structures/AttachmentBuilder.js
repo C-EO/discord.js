@@ -1,6 +1,6 @@
 'use strict';
 
-const { basename, flatten } = require('../util/Util');
+const { basename, flatten } = require('../util/Util.js');
 
 /**
  * Represents an attachment builder
@@ -102,12 +102,7 @@ class AttachmentBuilder {
   }
 }
 
-module.exports = AttachmentBuilder;
-
-/**
- * @external APIAttachment
- * @see {@link https://discord.com/developers/docs/resources/channel#attachment-object}
- */
+exports.AttachmentBuilder = AttachmentBuilder;
 
 /**
  * @typedef {Object} AttachmentData

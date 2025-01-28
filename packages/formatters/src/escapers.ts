@@ -14,7 +14,7 @@ export interface EscapeMarkdownOptions {
 	/**
 	 * Whether to escape bulleted lists.
 	 *
-	 * @defaultValue `false`
+	 * @defaultValue `true`
 	 */
 	bulletedList?: boolean;
 
@@ -42,7 +42,7 @@ export interface EscapeMarkdownOptions {
 	/**
 	 * Whether to escape headings.
 	 *
-	 * @defaultValue `false`
+	 * @defaultValue `true`
 	 */
 	heading?: boolean;
 
@@ -69,14 +69,14 @@ export interface EscapeMarkdownOptions {
 	/**
 	 * Whether to escape masked links.
 	 *
-	 * @defaultValue `false`
+	 * @defaultValue `true`
 	 */
 	maskedLink?: boolean;
 
 	/**
 	 * Whether to escape numbered lists.
 	 *
-	 * @defaultValue `false`
+	 * @defaultValue `true`
 	 */
 	numberedList?: boolean;
 
@@ -120,10 +120,10 @@ export function escapeMarkdown(text: string, options: EscapeMarkdownOptions = {}
 		codeBlockContent = true,
 		inlineCodeContent = true,
 		escape = true,
-		heading = false,
-		bulletedList = false,
-		numberedList = false,
-		maskedLink = false,
+		heading = true,
+		bulletedList = true,
+		numberedList = true,
+		maskedLink = true,
 	} = options;
 
 	if (!codeBlockContent) {
@@ -217,7 +217,7 @@ export function escapeItalic(text: string): string {
 		return `\\*${match}`;
 	});
 	idx = 0;
-	return newText.replaceAll(/(?<=^|[^_])(?<!<a?:.+)_(?!:\d+>)([^_]|__|$)/g, (_, match) => {
+	return newText.replaceAll(/(?<=^|[^_])(?<!<a?:.+|https?:\/\/\S+)_(?!:\d+>)([^_]|__|$)/g, (_, match) => {
 		if (match === '__') return ++idx % 2 ? `\\_${match}` : `${match}\\_`;
 		return `\\_${match}`;
 	});
@@ -243,7 +243,7 @@ export function escapeBold(text: string): string {
  */
 export function escapeUnderline(text: string): string {
 	let idx = 0;
-	return text.replaceAll(/(?<!<a?:.+)__(_)?(?!:\d+>)/g, (_, match) => {
+	return text.replaceAll(/(?<!<a?:.+|https?:\/\/\S+)__(_)?(?!:\d+>)/g, (_, match) => {
 		if (match) return ++idx % 2 ? `${match}\\_\\_` : `\\_\\_${match}`;
 		return '\\_\\_';
 	});

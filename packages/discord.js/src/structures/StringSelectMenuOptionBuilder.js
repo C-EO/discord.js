@@ -1,8 +1,9 @@
 'use strict';
 
-const { SelectMenuOptionBuilder: BuildersSelectMenuOption, isJSONEncodable } = require('@discordjs/builders');
-const { toSnakeCase } = require('../util/Transformers');
-const { resolvePartialEmoji } = require('../util/Util');
+const { SelectMenuOptionBuilder: BuildersSelectMenuOption } = require('@discordjs/builders');
+const { isJSONEncodable } = require('@discordjs/util');
+const { toSnakeCase } = require('../util/Transformers.js');
+const { resolvePartialEmoji } = require('../util/Util.js');
 
 /**
  * Represents a select menu option builder.
@@ -40,9 +41,9 @@ class StringSelectMenuOptionBuilder extends BuildersSelectMenuOption {
   }
 }
 
-module.exports = StringSelectMenuOptionBuilder;
+exports.StringSelectMenuOptionBuilder = StringSelectMenuOptionBuilder;
 
 /**
  * @external BuildersSelectMenuOption
- * @see {@link https://discord.js.org/docs/packages/builders/stable/SelectMenuOptionBuilder:Class}
+ * @see {@link https://discord.js.org/docs/packages/builders/stable/StringSelectMenuOptionBuilder:Class}
  */
