@@ -3,24 +3,32 @@
 const { lazy } = require('@discordjs/util');
 const { ChannelType } = require('discord-api-types/v10');
 
-const getCategoryChannel = lazy(() => require('../structures/CategoryChannel'));
-const getDMChannel = lazy(() => require('../structures/DMChannel'));
-const getNewsChannel = lazy(() => require('../structures/NewsChannel'));
-const getStageChannel = lazy(() => require('../structures/StageChannel'));
-const getTextChannel = lazy(() => require('../structures/TextChannel'));
-const getThreadChannel = lazy(() => require('../structures/ThreadChannel'));
-const getVoiceChannel = lazy(() => require('../structures/VoiceChannel'));
-const getDirectoryChannel = lazy(() => require('../structures/DirectoryChannel'));
-const getPartialGroupDMChannel = lazy(() => require('../structures/PartialGroupDMChannel'));
-const getForumChannel = lazy(() => require('../structures/ForumChannel'));
+const getCategoryChannel = lazy(() => require('../structures/CategoryChannel.js').CategoryChannel);
+const getDMChannel = lazy(() => require('../structures/DMChannel.js').DMChannel);
+const getAnnouncementChannel = lazy(() => require('../structures/AnnouncementChannel.js').AnnouncementChannel);
+const getStageChannel = lazy(() => require('../structures/StageChannel.js').StageChannel);
+const getTextChannel = lazy(() => require('../structures/TextChannel.js').TextChannel);
+const getThreadChannel = lazy(() => require('../structures/ThreadChannel.js').ThreadChannel);
+const getVoiceChannel = lazy(() => require('../structures/VoiceChannel.js').VoiceChannel);
+const getDirectoryChannel = lazy(() => require('../structures/DirectoryChannel.js').DirectoryChannel);
+const getPartialGroupDMChannel = lazy(() => require('../structures/PartialGroupDMChannel.js').PartialGroupDMChannel);
+const getForumChannel = lazy(() => require('../structures/ForumChannel.js').ForumChannel);
+const getMediaChannel = lazy(() => require('../structures/MediaChannel.js').MediaChannel);
+
+/**
+ * Extra options for creating a channel.
+ * @typedef {Object} CreateChannelOptions
+ * @property {boolean} [allowFromUnknownGuild] Whether to allow creating a channel from an unknown guild
+ * @private
+ */
 
 /**
  * Creates a discord.js channel from data received from the API.
  * @param {Client} client The client
  * @param {APIChannel} data The data of the channel to create
  * @param {Guild} [guild] The guild where this channel belongs
- * @param {Object} [extras] Extra information to supply for creating this channel
- * @returns {Channel} Any kind of channel.
+ * @param {CreateChannelOptions} [extras] Extra information to supply for creating this channel
+ * @returns {BaseChannel} Any kind of channel.
  * @ignore
  */
 function createChannel(client, data, guild, { allowUnknownGuild } = {}) {
@@ -49,7 +57,7 @@ function createChannel(client, data, guild, { allowUnknownGuild } = {}) {
           break;
         }
         case ChannelType.GuildAnnouncement: {
-          channel = new (getNewsChannel())(guild, data, client);
+          channel = new (getAnnouncementChannel())(guild, data, client);
           break;
         }
         case ChannelType.GuildStageVoice: {
@@ -68,6 +76,9 @@ function createChannel(client, data, guild, { allowUnknownGuild } = {}) {
           break;
         case ChannelType.GuildForum:
           channel = new (getForumChannel())(guild, data, client);
+          break;
+        case ChannelType.GuildMedia:
+          channel = new (getMediaChannel())(guild, data, client);
           break;
       }
       if (channel && !allowUnknownGuild) guild.channels?.cache.set(channel.id, channel);
@@ -88,7 +99,7 @@ function transformAPIGuildForumTag(tag) {
     name: tag.name,
     moderated: tag.moderated,
     emoji:
-      tag.emoji_id ?? tag.emoji_name
+      (tag.emoji_id ?? tag.emoji_name)
         ? {
             id: tag.emoji_id,
             name: tag.emoji_name,
@@ -141,10 +152,8 @@ function transformGuildDefaultReaction(defaultReaction) {
   };
 }
 
-module.exports = {
-  createChannel,
-  transformAPIGuildForumTag,
-  transformGuildForumTag,
-  transformAPIGuildDefaultReaction,
-  transformGuildDefaultReaction,
-};
+exports.createChannel = createChannel;
+exports.transformAPIGuildForumTag = transformAPIGuildForumTag;
+exports.transformGuildForumTag = transformGuildForumTag;
+exports.transformAPIGuildDefaultReaction = transformAPIGuildDefaultReaction;
+exports.transformGuildDefaultReaction = transformGuildDefaultReaction;

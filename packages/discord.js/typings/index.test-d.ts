@@ -27,6 +27,15 @@ import {
   APIActionRowComponent,
   APIActionRowComponentTypes,
   APIStringSelectComponent,
+  APIUserSelectComponent,
+  APIRoleSelectComponent,
+  APIChannelSelectComponent,
+  APIMentionableSelectComponent,
+  APIModalInteractionResponseCallbackData,
+  WebhookType,
+  GuildScheduledEventRecurrenceRuleFrequency,
+  GuildScheduledEventRecurrenceRuleMonth,
+  GuildScheduledEventRecurrenceRuleWeekday,
 } from 'discord-api-types/v10';
 import {
   ApplicationCommand,
@@ -43,7 +52,6 @@ import {
   Client,
   ClientApplication,
   ClientUser,
-  CloseEvent,
   Collection,
   ChatInputCommandInteraction,
   CommandInteractionOption,
@@ -67,7 +75,7 @@ import {
   MessageComponentInteraction,
   MessageReaction,
   ModalBuilder,
-  NewsChannel,
+  AnnouncementChannel,
   Options,
   PartialTextBasedChannelFields,
   PartialUser,
@@ -81,12 +89,12 @@ import {
   Snowflake,
   StageChannel,
   TextBasedChannelFields,
-  TextBasedChannel,
-  TextBasedChannelTypes,
-  VoiceBasedChannel,
-  GuildBasedChannel,
-  NonThreadGuildBasedChannel,
-  GuildTextBasedChannel,
+  type TextBasedChannel,
+  type TextBasedChannelTypes,
+  type VoiceBasedChannel,
+  type GuildBasedChannel,
+  type NonThreadGuildBasedChannel,
+  type GuildTextBasedChannel,
   TextChannel,
   ThreadChannel,
   ThreadMember,
@@ -94,18 +102,17 @@ import {
   User,
   VoiceChannel,
   Shard,
-  WebSocketShard,
   Collector,
   GuildAuditLogsEntry,
   GuildAuditLogs,
+  type AuditLogChange,
   StageInstance,
   ActionRowBuilder,
   ButtonComponent,
-  SelectMenuComponent,
+  StringSelectMenuComponent,
   RepliableInteraction,
   ThreadChannelType,
   Events,
-  WebSocketShardEvents,
   Status,
   CategoryChannelChildManager,
   ActionRowData,
@@ -145,9 +152,8 @@ import {
   ChannelFlagsBitField,
   GuildForumThreadManager,
   GuildTextThreadManager,
-  AnySelectMenuInteraction,
+  SelectMenuInteraction,
   StringSelectMenuInteraction,
-  StringSelectMenuComponent,
   UserSelectMenuInteraction,
   RoleSelectMenuInteraction,
   ChannelSelectMenuInteraction,
@@ -163,13 +169,62 @@ import {
   ThreadManager,
   FetchedThreads,
   FetchedThreadsMore,
-} from '.';
+  DMMessageManager,
+  GuildMessageManager,
+  ApplicationCommandChannelOptionData,
+  ApplicationCommandChannelOption,
+  ApplicationCommandChoicesOption,
+  ApplicationCommandChoicesData,
+  ApplicationCommandSubGroup,
+  ApplicationCommandSubCommand,
+  ChatInputApplicationCommandData,
+  ApplicationCommandPermissionsManager,
+  GuildOnboarding,
+  StringSelectMenuComponentData,
+  ButtonComponentData,
+  MediaChannel,
+  PartialDMChannel,
+  PartialGuildMember,
+  PartialMessage,
+  PartialMessageReaction,
+  resolvePartialEmoji,
+  PartialEmojiOnlyId,
+  Emoji,
+  PartialEmoji,
+  Awaitable,
+  Channel,
+  DirectoryChannel,
+  Entitlement,
+  SKU,
+  UserSelectMenuBuilder,
+  RoleSelectMenuBuilder,
+  ChannelSelectMenuBuilder,
+  MentionableSelectMenuBuilder,
+  UserSelectMenuComponent,
+  RoleSelectMenuComponent,
+  ChannelSelectMenuComponent,
+  MentionableSelectMenuComponent,
+  Poll,
+  ApplicationEmoji,
+  ApplicationEmojiManager,
+  StickerPack,
+  GuildScheduledEventManager,
+  SendableChannels,
+  PollData,
+  InteractionCallbackResponse,
+  GuildScheduledEventRecurrenceRuleOptions,
+  ThreadOnlyChannel,
+} from './index.js';
 import { expectAssignable, expectNotAssignable, expectNotType, expectType } from 'tsd';
 import type { ContextMenuCommandBuilder, SlashCommandBuilder } from '@discordjs/builders';
+import { ReadonlyCollection } from '@discordjs/collection';
 
 // Test type transformation:
-declare const serialize: <T>(value: T) => Serialized<T>;
-declare const notPropertyOf: <T, P extends PropertyKey>(value: T, property: P & Exclude<P, keyof T>) => void;
+declare const serialize: <Value>(value: Value) => Serialized<Value>;
+declare const notPropertyOf: <Value, Property extends PropertyKey>(
+  value: Value,
+  property: Property & Exclude<Property, keyof Value>,
+) => void;
 
 const client: Client = new Client({
   intents: GatewayIntentBits.Guilds,
@@ -181,8 +236,18 @@ const client: Client = new Client({
       maxSize: 200,
       keepOverLimit: member => member.id === client.user?.id,
     },
+    ThreadManager: {
+      maxSize: 200,
+      keepOverLimit: value => !value.archived,
+    },
   }),
 });
+
+if (client.isReady()) {
+  expectType<Client<true>>(client);
+} else {
+  expectType<Client>(client);
+}
 
 const testGuildId = '222078108977594368'; // DJS
 const testUserId = '987654321098765432'; // example id
@@ -341,6 +406,19 @@ declare const assertIsMessage: (m: Promise<Message>) => void;
 client.on('messageCreate', async message => {
   const { client, channel } = message;
 
+  // https://github.com/discordjs/discord.js/issues/8545
+  {
+    // These should not throw any errors when comparing messages from any source.
+    channel.messages.cache.filter(message => message);
+    (await channel.messages.fetch()).filter(({ author }) => author.id === message.author.id);
+
+    if (channel.isDMBased()) {
+      expectType<DMMessageManager>(channel.messages.channel.messages);
+    } else {
+      expectType<GuildMessageManager>(channel.messages.channel.messages);
+    }
+  }
+
   if (!message.inGuild() && message.partial) {
     expectNotType<never>(message);
   }
@@ -360,7 +438,7 @@ client.on('messageCreate', async message => {
     expectAssignable<Message<true>>(message);
     const component = await message.awaitMessageComponent({ componentType: ComponentType.Button });
     expectType<ButtonInteraction<'cached'>>(component);
-    expectType<Message<true>>(await component.reply({ fetchReply: true }));
+    expectType<InteractionCallbackResponse>(await component.reply({ withResponse: true }));
 
     const buttonCollector = message.createMessageComponentCollector({ componentType: ComponentType.Button });
     expectType<InteractionCollector<ButtonInteraction<'cached'>>>(buttonCollector);
@@ -368,7 +446,7 @@ client.on('messageCreate', async message => {
       (
         test: ButtonInteraction<'cached'>,
         items: Collection<Snowflake, ButtonInteraction<'cached'>>,
-      ) => boolean | Promise<boolean>
+      ) => Awaitable<boolean>
     >(buttonCollector.filter);
     expectType<GuildTextBasedChannel>(message.channel);
     expectType<Guild>(message.guild);
@@ -379,7 +457,7 @@ client.on('messageCreate', async message => {
     expectType<Collection<Snowflake, GuildMember>>(message.mentions.members);
   }
 
-  expectType<TextBasedChannel>(message.channel);
+  expectType<Exclude<TextBasedChannel, PartialGroupDMChannel>>(message.channel);
   expectNotType<GuildTextBasedChannel>(message.channel);
 
   // @ts-expect-error
@@ -395,21 +473,39 @@ client.on('messageCreate', async message => {
   expectAssignable<Promise<ButtonInteraction>>(channel.awaitMessageComponent({ componentType: ComponentType.Button }));
   expectAssignable<InteractionCollector<ButtonInteraction>>(buttonCollector);
 
+  buttonCollector.on('collect', (...args) => expectType<[ButtonInteraction]>(args));
+  buttonCollector.on('dispose', (...args) => expectType<[ButtonInteraction]>(args));
+  buttonCollector.on('end', (...args) => expectType<[ReadonlyCollection<Snowflake, ButtonInteraction>, string]>(args));
+
   // Verify that select menus interaction are inferred.
-  const selectMenuCollector = message.createMessageComponentCollector({ componentType: ComponentType.StringSelect });
+  const stringSelectMenuCollector = message.createMessageComponentCollector({
+    componentType: ComponentType.StringSelect,
+  });
   expectAssignable<Promise<StringSelectMenuInteraction>>(
     message.awaitMessageComponent({ componentType: ComponentType.StringSelect }),
   );
   expectAssignable<Promise<StringSelectMenuInteraction>>(
     channel.awaitMessageComponent({ componentType: ComponentType.StringSelect }),
   );
-  expectAssignable<InteractionCollector<StringSelectMenuInteraction>>(selectMenuCollector);
+  expectAssignable<InteractionCollector<StringSelectMenuInteraction>>(stringSelectMenuCollector);
+
+  stringSelectMenuCollector.on('collect', (...args) => expectType<[StringSelectMenuInteraction]>(args));
+  stringSelectMenuCollector.on('dispose', (...args) => expectType<[StringSelectMenuInteraction]>(args));
+  stringSelectMenuCollector.on('end', (...args) =>
+    expectType<[ReadonlyCollection<Snowflake, StringSelectMenuInteraction>, string]>(args),
+  );
 
   // Verify that message component interactions are default collected types.
   const defaultCollector = message.createMessageComponentCollector();
   expectAssignable<Promise<MessageComponentInteraction>>(message.awaitMessageComponent());
   expectAssignable<Promise<MessageComponentInteraction>>(channel.awaitMessageComponent());
   expectAssignable<InteractionCollector<CollectedMessageInteraction>>(defaultCollector);
+
+  defaultCollector.on('collect', (...args) => expectType<[SelectMenuInteraction | ButtonInteraction]>(args));
+  defaultCollector.on('dispose', (...args) => expectType<[SelectMenuInteraction | ButtonInteraction]>(args));
+  defaultCollector.on('end', (...args) =>
+    expectType<[ReadonlyCollection<Snowflake, SelectMenuInteraction | ButtonInteraction>, string]>(args),
+  );
 
   // Verify that additional options don't affect default collector types.
   const semiDefaultCollector = message.createMessageComponentCollector({ time: 10000 });
@@ -474,13 +570,15 @@ client.on('messageCreate', async message => {
 
   if (webhook.isChannelFollower()) {
     expectAssignable<Guild | APIPartialGuild>(webhook.sourceGuild);
-    expectAssignable<NewsChannel | APIPartialChannel>(webhook.sourceChannel);
+    expectAssignable<AnnouncementChannel | APIPartialChannel>(webhook.sourceChannel);
+    expectType<Webhook<WebhookType.ChannelFollower>>(webhook);
   } else if (webhook.isIncoming()) {
     expectType<string>(webhook.token);
+    expectType<Webhook<WebhookType.Incoming>>(webhook);
   }
 
   expectNotType<Guild | APIPartialGuild>(webhook.sourceGuild);
-  expectNotType<NewsChannel | APIPartialChannel>(webhook.sourceChannel);
+  expectNotType<AnnouncementChannel | APIPartialChannel>(webhook.sourceChannel);
   expectNotType<string>(webhook.token);
 
   channel.awaitMessageComponent({
@@ -508,10 +606,10 @@ client.on('messageCreate', async message => {
 
   // Check that both builders and builder data can be sent in messages
   const row = new ActionRowBuilder<MessageActionRowComponentBuilder>();
-  const buttonsRow: ActionRowData<MessageActionRowComponentData> = {
+
+  const rawButtonsRow: ActionRowData<ButtonComponentData> = {
     type: ComponentType.ActionRow,
     components: [
-      new ButtonBuilder(),
       { type: ComponentType.Button, label: 'test', style: ButtonStyle.Primary, customId: 'test' },
       {
         type: ComponentType.Button,
@@ -521,21 +619,34 @@ client.on('messageCreate', async message => {
       },
     ],
   };
-  const selectsRow: ActionRowData<MessageActionRowComponentData> = {
+
+  const buttonsRow: ActionRowData<ButtonBuilder> = {
+    type: ComponentType.ActionRow,
+    components: [new ButtonBuilder()],
+  };
+
+  const rawStringSelectMenuRow: ActionRowData<StringSelectMenuComponentData> = {
     type: ComponentType.ActionRow,
     components: [
-      new StringSelectMenuBuilder(),
       {
         type: ComponentType.StringSelect,
-        label: 'select menu',
         options: [{ label: 'test', value: 'test' }],
         customId: 'test',
       },
     ],
   };
 
+  const stringSelectRow: ActionRowData<StringSelectMenuBuilder> = {
+    type: ComponentType.ActionRow,
+    components: [new StringSelectMenuBuilder()],
+  };
+
   const embedData = { description: 'test', color: 0xff0000 };
-  channel.send({ components: [row, buttonsRow, selectsRow], embeds: [embed, embedData] });
+
+  channel.send({
+    components: [row, rawButtonsRow, buttonsRow, rawStringSelectMenuRow, stringSelectRow],
+    embeds: [embed, embedData],
+  });
 });
 
 client.on('messageDelete', ({ client }) => expectType<Client<true>>(client));
@@ -587,7 +698,7 @@ client.on('presenceUpdate', (oldPresence, { client }) => {
 declare const slashCommandBuilder: SlashCommandBuilder;
 declare const contextMenuCommandBuilder: ContextMenuCommandBuilder;
 
-client.on('ready', async client => {
+client.on('clientReady', async client => {
   expectType<Client<true>>(client);
   console.log(`Client is logged in as ${client.user.tag} and ready!`);
 
@@ -601,8 +712,8 @@ client.on('ready', async client => {
 
   // Test command manager methods
   const globalCommand = await client.application?.commands.fetch(globalCommandId);
-  const guildCommandFromGlobal = await client.application?.commands.fetch(guildCommandId, { guildId: testGuildId });
-  const guildCommandFromGuild = await client.guilds.cache.get(testGuildId)?.commands.fetch(guildCommandId);
+  const guildCommandFromGlobal = await client.application?.commands.fetch({ id: guildCommandId, guildId: testGuildId });
+  const guildCommandFromGuild = await client.guilds.cache.get(testGuildId)?.commands.fetch({ id: guildCommandId });
 
   await client.application?.commands.create(slashCommandBuilder);
   await client.application?.commands.create(contextMenuCommandBuilder);
@@ -617,7 +728,6 @@ client.on('ready', async client => {
   await client.application?.commands.edit(globalCommandId, { defaultMemberPermissions: null });
   await globalCommand?.edit({ defaultMemberPermissions: null });
   await globalCommand?.setDefaultMemberPermissions(null);
-  await guildCommandFromGlobal?.edit({ dmPermission: false });
 
   // @ts-expect-error
   await client.guilds.cache.get(testGuildId)?.commands.fetch(guildCommandId, { guildId: testGuildId });
@@ -1109,8 +1219,8 @@ client.on('threadMembersUpdate', (addedMembers, removedMembers, thread) => {
   expectType<Client<true>>(addedMembers.first()!.client);
   expectType<Client<true>>(removedMembers.first()!.client);
   expectType<Client<true>>(thread.client);
-  expectType<Collection<Snowflake, ThreadMember>>(addedMembers);
-  expectType<Collection<Snowflake, ThreadMember | PartialThreadMember>>(removedMembers);
+  expectType<ReadonlyCollection<Snowflake, ThreadMember>>(addedMembers);
+  expectType<ReadonlyCollection<Snowflake, ThreadMember | PartialThreadMember>>(removedMembers);
   expectType<AnyThreadChannel>(thread);
   const left = removedMembers.first();
   if (!left) return;
@@ -1146,7 +1256,7 @@ client.on('voiceStateUpdate', ({ client: oldClient }, { client: newClient }) => 
   expectType<Client<true>>(newClient);
 });
 
-client.on('webhookUpdate', ({ client }) => expectType<Client<true>>(client));
+client.on('webhooksUpdate', ({ client }) => expectType<Client<true>>(client));
 
 client.on('guildCreate', async g => {
   expectType<Client<true>>(g.client);
@@ -1160,7 +1270,7 @@ client.on('guildCreate', async g => {
         new ButtonBuilder(),
         { type: ComponentType.Button, style: ButtonStyle.Primary, label: 'string', customId: 'foo' },
         { type: ComponentType.Button, style: ButtonStyle.Link, label: 'test', url: 'test' },
-        { type: ComponentType.StringSelect, customId: 'foo' },
+        { type: ComponentType.StringSelect, customId: 'foo', options: [{ label: 'label', value: 'value' }] },
         new StringSelectMenuBuilder(),
         // @ts-expect-error
         { type: ComponentType.TextInput, style: TextInputStyle.Paragraph, customId: 'foo', label: 'test' },
@@ -1174,7 +1284,7 @@ client.on('guildCreate', async g => {
       components: [
         { type: ComponentType.Button, style: ButtonStyle.Primary, label: 'string', customId: 'foo' },
         { type: ComponentType.Button, style: ButtonStyle.Link, label: 'test', url: 'test' },
-        { type: ComponentType.StringSelect, customId: 'foo' },
+        { type: ComponentType.StringSelect, customId: 'foo', options: [{ label: 'label', value: 'value' }] },
       ],
     });
 
@@ -1213,6 +1323,10 @@ client.on('guildCreate', async g => {
     }),
   );
 });
+
+// Event emitter static method overrides
+expectType<Promise<[Client<true>]>>(Client.once(client, 'clientReady'));
+expectAssignable<AsyncIterableIterator<[Client<true>]>>(Client.on(client, 'clientReady'));
 
 client.login('absolutely-valid-token');
 
@@ -1271,7 +1385,7 @@ declare const dmChannel: DMChannel;
 declare const threadChannel: ThreadChannel;
 declare const threadChannelFromForum: ThreadChannel<true>;
 declare const threadChannelNotFromForum: ThreadChannel<false>;
-declare const newsChannel: NewsChannel;
+declare const announcementChannel: AnnouncementChannel;
 declare const textChannel: TextChannel;
 declare const voiceChannel: VoiceChannel;
 declare const guild: Guild;
@@ -1279,25 +1393,25 @@ declare const user: User;
 declare const guildMember: GuildMember;
 
 // Test thread channels' parent inference
-expectType<TextChannel | NewsChannel | ForumChannel | null>(threadChannel.parent);
-expectType<ForumChannel | null>(threadChannelFromForum.parent);
-expectType<TextChannel | NewsChannel | null>(threadChannelNotFromForum.parent);
+expectType<TextChannel | AnnouncementChannel | ForumChannel | MediaChannel | null>(threadChannel.parent);
+expectType<ForumChannel | MediaChannel | null>(threadChannelFromForum.parent);
+expectType<TextChannel | AnnouncementChannel | null>(threadChannelNotFromForum.parent);
 
 // Test whether the structures implement send
 expectType<TextBasedChannelFields<false>['send']>(dmChannel.send);
 expectType<TextBasedChannelFields<true>['send']>(threadChannel.send);
-expectType<TextBasedChannelFields<true>['send']>(newsChannel.send);
+expectType<TextBasedChannelFields<true>['send']>(announcementChannel.send);
 expectType<TextBasedChannelFields<true>['send']>(textChannel.send);
 expectType<TextBasedChannelFields<true>['send']>(voiceChannel.send);
 expectAssignable<PartialTextBasedChannelFields>(user);
 expectAssignable<PartialTextBasedChannelFields>(guildMember);
 
-expectType<Promise<NewsChannel>>(textChannel.setType(ChannelType.GuildAnnouncement));
-expectType<Promise<TextChannel>>(newsChannel.setType(ChannelType.GuildText));
+expectType<Promise<AnnouncementChannel>>(textChannel.setType(ChannelType.GuildAnnouncement));
+expectType<Promise<TextChannel>>(announcementChannel.setType(ChannelType.GuildText));
 
 expectType<Message | null>(dmChannel.lastMessage);
 expectType<Message | null>(threadChannel.lastMessage);
-expectType<Message | null>(newsChannel.lastMessage);
+expectType<Message | null>(announcementChannel.lastMessage);
 expectType<Message | null>(textChannel.lastMessage);
 expectType<Message | null>(voiceChannel.lastMessage);
 
@@ -1323,6 +1437,11 @@ reactionCollector.on('dispose', (...args) => {
   expectType<[MessageReaction, User]>(args);
 });
 
+reactionCollector.on('collect', (...args) => expectType<[MessageReaction, User]>(args));
+reactionCollector.on('dispose', (...args) => expectType<[MessageReaction, User]>(args));
+reactionCollector.on('remove', (...args) => expectType<[MessageReaction, User]>(args));
+reactionCollector.on('end', (...args) => expectType<[ReadonlyCollection<string, MessageReaction>, string]>(args));
+
 (async () => {
   for await (const value of reactionCollector) {
     expectType<[MessageReaction, User]>(value);
@@ -1332,7 +1451,6 @@ reactionCollector.on('dispose', (...args) => {
 // Make sure the properties are typed correctly, and that no backwards properties
 // (K -> V and V -> K) exist:
 expectAssignable<'messageCreate'>(Events.MessageCreate);
-expectAssignable<'close'>(WebSocketShardEvents.Close);
 expectAssignable<'death'>(ShardEvents.Death);
 expectAssignable<1>(Status.Connecting);
 
@@ -1355,7 +1473,7 @@ declare const applicationCommandManager: ApplicationCommandManager;
     applicationCommandManager.set([applicationCommandData]),
   );
   expectType<Promise<Collection<Snowflake, ApplicationCommand>>>(
-    applicationCommandManager.set([applicationCommandData], '0'),
+    applicationCommandManager.set([applicationCommandData] as const, '0'),
   );
 
   // Test inference of choice values.
@@ -1377,6 +1495,41 @@ declare const applicationCommandManager: ApplicationCommandManager;
   }
 }
 
+declare const applicationCommandPermissionsManager: ApplicationCommandPermissionsManager<
+  {},
+  {},
+  Guild | null,
+  Snowflake
+>;
+{
+  applicationCommandPermissionsManager.add({ permissions: [], token: '' });
+  applicationCommandPermissionsManager.add({ permissions: [] as const, token: '' });
+  applicationCommandPermissionsManager.set({ permissions: [], token: '' });
+  applicationCommandPermissionsManager.set({ permissions: [] as const, token: '' });
+  applicationCommandPermissionsManager.remove({ channels: [], roles: [], users: [], token: '' });
+
+  applicationCommandPermissionsManager.remove({
+    channels: [] as const,
+    roles: [] as const,
+    users: [] as const,
+    token: '',
+  });
+}
+
+declare const chatInputApplicationCommandData: ChatInputApplicationCommandData;
+{
+  chatInputApplicationCommandData.options = [];
+  chatInputApplicationCommandData.options = [] as const;
+}
+
+declare const applicationCommandChannelOptionData: ApplicationCommandChannelOptionData;
+declare const applicationCommandChannelOption: ApplicationCommandChannelOption;
+{
+  applicationCommandChannelOptionData.channelTypes = [] as const;
+  applicationCommandChannelOptionData.channel_types = [] as const;
+  applicationCommandChannelOption.channelTypes = [] as const;
+}
+
 declare const applicationNonChoiceOptionData: ApplicationCommandOptionData & {
   type: CommandOptionNonChoiceResolvableType;
 };
@@ -1387,10 +1540,32 @@ declare const applicationNonChoiceOptionData: ApplicationCommandOptionData & {
   applicationNonChoiceOptionData.choices;
 }
 
+declare const applicationCommandChoicesData: ApplicationCommandChoicesData;
+declare const applicationCommandChoicesOption: ApplicationCommandChoicesOption;
+{
+  applicationCommandChoicesData.choices = [];
+  applicationCommandChoicesData.choices = [] as const;
+  applicationCommandChoicesOption.choices = [];
+  applicationCommandChoicesOption.choices = [] as const;
+}
+
+declare const applicationCommandSubCommandData: ApplicationCommandSubCommandData;
+declare const applicationCommandSubCommand: ApplicationCommandSubCommand;
+{
+  applicationCommandSubCommandData.options = [];
+  applicationCommandSubCommandData.options = [] as const;
+  applicationCommandSubCommand.options = [];
+  applicationCommandSubCommand.options = [] as const;
+}
+
 declare const applicationSubGroupCommandData: ApplicationCommandSubGroupData;
+declare const applicationCommandSubGroup: ApplicationCommandSubGroup;
 {
   expectType<ApplicationCommandOptionType.SubcommandGroup>(applicationSubGroupCommandData.type);
-  expectType<ApplicationCommandSubCommandData[]>(applicationSubGroupCommandData.options);
+  applicationSubGroupCommandData.options = [];
+  applicationSubGroupCommandData.options = [] as const;
+  applicationCommandSubGroup.options = [];
+  applicationCommandSubGroup.options = [] as const;
 }
 
 declare const autoModerationRuleManager: AutoModerationRuleManager;
@@ -1414,15 +1589,15 @@ declare const autoModerationRuleManager: AutoModerationRuleManager;
 }
 
 declare const guildApplicationCommandManager: GuildApplicationCommandManager;
-expectType<Promise<Collection<Snowflake, ApplicationCommand>>>(guildApplicationCommandManager.fetch());
-expectType<Promise<Collection<Snowflake, ApplicationCommand>>>(guildApplicationCommandManager.fetch(undefined, {}));
 expectType<Promise<ApplicationCommand>>(guildApplicationCommandManager.fetch('0'));
+expectType<Promise<ApplicationCommand>>(guildApplicationCommandManager.fetch({ id: '0' }));
+expectType<Promise<Collection<Snowflake, ApplicationCommand>>>(guildApplicationCommandManager.fetch());
 
 declare const categoryChannelChildManager: CategoryChannelChildManager;
 {
   expectType<Promise<VoiceChannel>>(categoryChannelChildManager.create({ name: 'name', type: ChannelType.GuildVoice }));
   expectType<Promise<TextChannel>>(categoryChannelChildManager.create({ name: 'name', type: ChannelType.GuildText }));
-  expectType<Promise<NewsChannel>>(
+  expectType<Promise<AnnouncementChannel>>(
     categoryChannelChildManager.create({ name: 'name', type: ChannelType.GuildAnnouncement }),
   );
   expectType<Promise<StageChannel>>(
@@ -1439,9 +1614,12 @@ declare const guildChannelManager: GuildChannelManager;
   expectType<Promise<VoiceChannel>>(guildChannelManager.create({ name: 'name', type: ChannelType.GuildVoice }));
   expectType<Promise<CategoryChannel>>(guildChannelManager.create({ name: 'name', type: ChannelType.GuildCategory }));
   expectType<Promise<TextChannel>>(guildChannelManager.create({ name: 'name', type: ChannelType.GuildText }));
-  expectType<Promise<NewsChannel>>(guildChannelManager.create({ name: 'name', type: ChannelType.GuildAnnouncement }));
+  expectType<Promise<AnnouncementChannel>>(
+    guildChannelManager.create({ name: 'name', type: ChannelType.GuildAnnouncement }),
+  );
   expectType<Promise<StageChannel>>(guildChannelManager.create({ name: 'name', type: ChannelType.GuildStageVoice }));
   expectType<Promise<ForumChannel>>(guildChannelManager.create({ name: 'name', type: ChannelType.GuildForum }));
+  expectType<Promise<MediaChannel>>(guildChannelManager.create({ name: 'name', type: ChannelType.GuildMedia }));
 
   expectType<Promise<Collection<Snowflake, NonThreadGuildBasedChannel | null>>>(guildChannelManager.fetch());
   expectType<Promise<Collection<Snowflake, NonThreadGuildBasedChannel | null>>>(
@@ -1454,7 +1632,7 @@ declare const guildChannelManager: GuildChannelManager;
   if (channel.isTextBased()) {
     const { messages } = channel;
     const message = await messages.fetch('123');
-    expectType<MessageManager<true>>(messages);
+    expectType<GuildMessageManager>(messages);
     expectType<Promise<Message<true>>>(messages.crosspost('1234567890'));
     expectType<Promise<Message<true>>>(messages.edit('1234567890', 'text'));
     expectType<Promise<Message<true>>>(messages.fetch('1234567890'));
@@ -1468,18 +1646,24 @@ declare const guildChannelManager: GuildChannelManager;
 {
   const { messages } = dmChannel;
   const message = await messages.fetch('123');
-  expectType<MessageManager<false>>(messages);
-  expectType<Promise<Message<false>>>(messages.crosspost('1234567890')); // This shouldn't even exist!
-  expectType<Promise<Message<false>>>(messages.edit('1234567890', 'text'));
-  expectType<Promise<Message<false>>>(messages.fetch('1234567890'));
-  expectType<Promise<Collection<Snowflake, Message<false>>>>(messages.fetchPinned());
-  expectType<null>(message.guild);
-  expectType<null>(message.guildId);
-  expectType<TextBasedChannel>(message.channel.messages.channel);
+  expectType<DMMessageManager>(messages);
+  expectType<Promise<Message>>(messages.edit('1234567890', 'text'));
+  expectType<Promise<Message>>(messages.fetch('1234567890'));
+  expectType<Promise<Collection<Snowflake, Message>>>(messages.fetchPinned());
+  expectType<Guild | null>(message.guild);
+  expectType<Snowflake | null>(message.guildId);
+  expectType<DMChannel | PartialGroupDMChannel | GuildTextBasedChannel>(message.channel.messages.channel);
+  expectType<MessageMentions>(message.mentions);
+  expectType<Guild | null>(message.mentions.guild);
+  expectType<Collection<Snowflake, GuildMember> | null>(message.mentions.members);
 
-  expectType<MessageMentions<false>>(message.mentions);
-  expectType<null>(message.mentions.guild);
-  expectType<null>(message.mentions.members);
+  if (messages.channel.isDMBased()) {
+    expectType<DMChannel>(messages.channel);
+    expectType<DMChannel>(messages.channel.messages.channel);
+  }
+
+  // @ts-expect-error Crossposting is not possible in direct messages.
+  messages.crosspost('1234567890');
 }
 
 declare const threadManager: ThreadManager;
@@ -1495,12 +1679,12 @@ declare const threadManager: ThreadManager;
 }
 
 declare const guildForumThreadManager: GuildForumThreadManager;
-expectType<ForumChannel>(guildForumThreadManager.channel);
+expectType<ForumChannel | MediaChannel>(guildForumThreadManager.channel);
 
 declare const guildTextThreadManager: GuildTextThreadManager<
   ChannelType.PublicThread | ChannelType.PrivateThread | ChannelType.AnnouncementThread
 >;
-expectType<TextChannel | NewsChannel>(guildTextThreadManager.channel);
+expectType<TextChannel | AnnouncementChannel>(guildTextThreadManager.channel);
 
 declare const guildMemberManager: GuildMemberManager;
 {
@@ -1543,12 +1727,17 @@ declare const messageManager: MessageManager;
 declare const roleManager: RoleManager;
 expectType<Promise<Collection<Snowflake, Role>>>(roleManager.fetch());
 expectType<Promise<Collection<Snowflake, Role>>>(roleManager.fetch(undefined, {}));
-expectType<Promise<Role | null>>(roleManager.fetch('0'));
+expectType<Promise<Role>>(roleManager.fetch('0'));
 
 declare const guildEmojiManager: GuildEmojiManager;
 expectType<Promise<Collection<Snowflake, GuildEmoji>>>(guildEmojiManager.fetch());
 expectType<Promise<Collection<Snowflake, GuildEmoji>>>(guildEmojiManager.fetch(undefined, {}));
 expectType<Promise<GuildEmoji>>(guildEmojiManager.fetch('0'));
+
+declare const applicationEmojiManager: ApplicationEmojiManager;
+expectType<Promise<Collection<Snowflake, ApplicationEmoji>>>(applicationEmojiManager.fetch());
+expectType<Promise<Collection<Snowflake, ApplicationEmoji>>>(applicationEmojiManager.fetch(undefined, {}));
+expectType<Promise<ApplicationEmoji>>(applicationEmojiManager.fetch('0'));
 
 declare const guildBanManager: GuildBanManager;
 {
@@ -1616,7 +1805,7 @@ if (interaction.inGuild()) {
 
 client.on('interactionCreate', async interaction => {
   if (interaction.type === InteractionType.MessageComponent) {
-    expectType<AnySelectMenuInteraction | ButtonInteraction>(interaction);
+    expectType<SelectMenuInteraction | ButtonInteraction>(interaction);
     expectType<MessageActionRowComponent | APIButtonComponent | APISelectMenuComponent>(interaction.component);
     expectType<Message>(interaction.message);
     if (interaction.inCachedGuild()) {
@@ -1624,36 +1813,74 @@ client.on('interactionCreate', async interaction => {
       expectType<MessageActionRowComponent>(interaction.component);
       expectType<Message<true>>(interaction.message);
       expectType<Guild>(interaction.guild);
-      expectType<Promise<Message<true>>>(interaction.reply({ content: 'a', fetchReply: true }));
-      expectType<Promise<Message<true>>>(interaction.deferReply({ fetchReply: true }));
+      expectType<Promise<InteractionCallbackResponse>>(interaction.reply({ content: 'a', withResponse: true }));
+      expectType<Promise<InteractionCallbackResponse>>(interaction.deferReply({ withResponse: true }));
+      expectType<Promise<undefined>>(interaction.deferReply());
+      expectType<Promise<undefined>>(interaction.reply({ content: 'a', withResponse: false }));
+      expectType<Promise<undefined>>(interaction.deferReply({ withResponse: false }));
+      expectType<Promise<InteractionCallbackResponse | undefined>>(
+        interaction.reply({ content: 'a', withResponse: booleanValue }),
+      );
+      expectType<Promise<InteractionCallbackResponse | undefined>>(
+        interaction.deferReply({ withResponse: booleanValue }),
+      );
       expectType<Promise<Message<true>>>(interaction.editReply({ content: 'a' }));
       expectType<Promise<Message<true>>>(interaction.fetchReply());
-      expectType<Promise<Message<true>>>(interaction.update({ content: 'a', fetchReply: true }));
-      expectType<Promise<Message<true>>>(interaction.deferUpdate({ fetchReply: true }));
+      expectType<Promise<InteractionCallbackResponse>>(interaction.update({ content: 'a', withResponse: true }));
+      expectType<Promise<InteractionCallbackResponse>>(interaction.deferUpdate({ withResponse: true }));
+      expectType<Promise<undefined>>(interaction.deferUpdate());
       expectType<Promise<Message<true>>>(interaction.followUp({ content: 'a' }));
     } else if (interaction.inRawGuild()) {
       expectAssignable<MessageComponentInteraction>(interaction);
       expectType<APIButtonComponent | APISelectMenuComponent>(interaction.component);
       expectType<Message<false>>(interaction.message);
       expectType<null>(interaction.guild);
-      expectType<Promise<Message<false>>>(interaction.reply({ content: 'a', fetchReply: true }));
-      expectType<Promise<Message<false>>>(interaction.deferReply({ fetchReply: true }));
+      expectType<Promise<InteractionCallbackResponse>>(interaction.reply({ content: 'a', withResponse: true }));
+      expectType<Promise<InteractionCallbackResponse>>(interaction.deferReply({ withResponse: true }));
+      expectType<Promise<undefined>>(interaction.reply({ content: 'a', withResponse: false }));
+      expectType<Promise<undefined>>(interaction.deferReply({ withResponse: false }));
+      expectType<Promise<undefined>>(interaction.deferReply());
+      expectType<Promise<InteractionCallbackResponse | undefined>>(
+        interaction.reply({ content: 'a', withResponse: booleanValue }),
+      );
+      expectType<Promise<InteractionCallbackResponse | undefined>>(
+        interaction.deferReply({ withResponse: booleanValue }),
+      );
       expectType<Promise<Message<false>>>(interaction.editReply({ content: 'a' }));
       expectType<Promise<Message<false>>>(interaction.fetchReply());
-      expectType<Promise<Message<false>>>(interaction.update({ content: 'a', fetchReply: true }));
-      expectType<Promise<Message<false>>>(interaction.deferUpdate({ fetchReply: true }));
+      expectType<Promise<InteractionCallbackResponse>>(interaction.update({ content: 'a', withResponse: true }));
+      expectType<Promise<undefined>>(interaction.update({ content: 'a', withResponse: false }));
+      expectType<Promise<InteractionCallbackResponse | undefined>>(
+        interaction.update({ content: 'a', withResponse: booleanValue }),
+      );
+      expectType<Promise<InteractionCallbackResponse>>(interaction.deferUpdate({ withResponse: true }));
+      expectType<Promise<undefined>>(interaction.deferUpdate());
       expectType<Promise<Message<false>>>(interaction.followUp({ content: 'a' }));
     } else if (interaction.inGuild()) {
       expectAssignable<MessageComponentInteraction>(interaction);
       expectType<MessageActionRowComponent | APIButtonComponent | APISelectMenuComponent>(interaction.component);
       expectType<Message>(interaction.message);
       expectType<Guild | null>(interaction.guild);
-      expectType<Promise<Message>>(interaction.reply({ content: 'a', fetchReply: true }));
-      expectType<Promise<Message>>(interaction.deferReply({ fetchReply: true }));
+      expectType<Promise<InteractionCallbackResponse>>(interaction.reply({ content: 'a', withResponse: true }));
+      expectType<Promise<InteractionCallbackResponse>>(interaction.deferReply({ withResponse: true }));
+      expectType<Promise<undefined>>(interaction.reply({ content: 'a', withResponse: false }));
+      expectType<Promise<undefined>>(interaction.deferReply({ withResponse: false }));
+      expectType<Promise<undefined>>(interaction.deferReply());
+      expectType<Promise<InteractionCallbackResponse | undefined>>(
+        interaction.reply({ content: 'a', withResponse: booleanValue }),
+      );
+      expectType<Promise<InteractionCallbackResponse | undefined>>(
+        interaction.deferReply({ withResponse: booleanValue }),
+      );
       expectType<Promise<Message>>(interaction.editReply({ content: 'a' }));
       expectType<Promise<Message>>(interaction.fetchReply());
-      expectType<Promise<Message>>(interaction.update({ content: 'a', fetchReply: true }));
-      expectType<Promise<Message>>(interaction.deferUpdate({ fetchReply: true }));
+      expectType<Promise<InteractionCallbackResponse>>(interaction.update({ content: 'a', withResponse: true }));
+      expectType<Promise<undefined>>(interaction.update({ content: 'a', withResponse: false }));
+      expectType<Promise<InteractionCallbackResponse | undefined>>(
+        interaction.update({ content: 'a', withResponse: booleanValue }),
+      );
+      expectType<Promise<InteractionCallbackResponse>>(interaction.deferUpdate({ withResponse: true }));
+      expectType<Promise<undefined>>(interaction.deferUpdate());
       expectType<Promise<Message>>(interaction.followUp({ content: 'a' }));
     }
   }
@@ -1681,28 +1908,57 @@ client.on('interactionCreate', async interaction => {
       interaction.commandType === ApplicationCommandType.Message)
   ) {
     expectType<MessageContextMenuCommandInteraction | UserContextMenuCommandInteraction>(interaction);
+    // @ts-expect-error No attachment options on contextmenu commands
+    interaction.options.getAttachment('name');
     if (interaction.inCachedGuild()) {
       expectAssignable<ContextMenuCommandInteraction>(interaction);
       expectAssignable<Guild>(interaction.guild);
       expectAssignable<CommandInteraction<'cached'>>(interaction);
-      expectType<Promise<Message<true>>>(interaction.reply({ content: 'a', fetchReply: true }));
-      expectType<Promise<Message<true>>>(interaction.deferReply({ fetchReply: true }));
+      expectType<Promise<InteractionCallbackResponse>>(interaction.reply({ content: 'a', withResponse: true }));
+      expectType<Promise<InteractionCallbackResponse>>(interaction.deferReply({ withResponse: true }));
+      expectType<Promise<undefined>>(interaction.deferReply());
+      expectType<Promise<undefined>>(interaction.reply({ content: 'a', withResponse: false }));
+      expectType<Promise<undefined>>(interaction.deferReply({ withResponse: false }));
+      expectType<Promise<InteractionCallbackResponse | undefined>>(
+        interaction.reply({ content: 'a', withResponse: booleanValue }),
+      );
+      expectType<Promise<InteractionCallbackResponse | undefined>>(
+        interaction.deferReply({ withResponse: booleanValue }),
+      );
       expectType<Promise<Message<true>>>(interaction.editReply({ content: 'a' }));
       expectType<Promise<Message<true>>>(interaction.fetchReply());
       expectType<Promise<Message<true>>>(interaction.followUp({ content: 'a' }));
     } else if (interaction.inRawGuild()) {
       expectAssignable<ContextMenuCommandInteraction>(interaction);
       expectType<null>(interaction.guild);
-      expectType<Promise<Message<false>>>(interaction.reply({ content: 'a', fetchReply: true }));
-      expectType<Promise<Message<false>>>(interaction.deferReply({ fetchReply: true }));
+      expectType<Promise<InteractionCallbackResponse>>(interaction.reply({ content: 'a', withResponse: true }));
+      expectType<Promise<InteractionCallbackResponse>>(interaction.deferReply({ withResponse: true }));
+      expectType<Promise<undefined>>(interaction.deferReply());
+      expectType<Promise<undefined>>(interaction.reply({ content: 'a', withResponse: false }));
+      expectType<Promise<undefined>>(interaction.deferReply({ withResponse: false }));
+      expectType<Promise<InteractionCallbackResponse | undefined>>(
+        interaction.reply({ content: 'a', withResponse: booleanValue }),
+      );
+      expectType<Promise<InteractionCallbackResponse | undefined>>(
+        interaction.deferReply({ withResponse: booleanValue }),
+      );
       expectType<Promise<Message<false>>>(interaction.editReply({ content: 'a' }));
       expectType<Promise<Message<false>>>(interaction.fetchReply());
       expectType<Promise<Message<false>>>(interaction.followUp({ content: 'a' }));
     } else if (interaction.inGuild()) {
       expectAssignable<ContextMenuCommandInteraction>(interaction);
       expectType<Guild | null>(interaction.guild);
-      expectType<Promise<Message>>(interaction.reply({ content: 'a', fetchReply: true }));
-      expectType<Promise<Message>>(interaction.deferReply({ fetchReply: true }));
+      expectType<Promise<InteractionCallbackResponse>>(interaction.reply({ content: 'a', withResponse: true }));
+      expectType<Promise<InteractionCallbackResponse>>(interaction.deferReply({ withResponse: true }));
+      expectType<Promise<undefined>>(interaction.deferReply());
+      expectType<Promise<undefined>>(interaction.reply({ content: 'a', withResponse: false }));
+      expectType<Promise<undefined>>(interaction.deferReply({ withResponse: false }));
+      expectType<Promise<InteractionCallbackResponse | undefined>>(
+        interaction.reply({ content: 'a', withResponse: booleanValue }),
+      );
+      expectType<Promise<InteractionCallbackResponse | undefined>>(
+        interaction.deferReply({ withResponse: booleanValue }),
+      );
       expectType<Promise<Message>>(interaction.editReply({ content: 'a' }));
       expectType<Promise<Message>>(interaction.fetchReply());
       expectType<Promise<Message>>(interaction.followUp({ content: 'a' }));
@@ -1714,12 +1970,36 @@ client.on('interactionCreate', async interaction => {
     interaction.commandType === ApplicationCommandType.Message
   ) {
     expectType<Message>(interaction.targetMessage);
+    expectType<Message | null>(interaction.options.getMessage('_MESSAGE'));
     if (interaction.inCachedGuild()) {
       expectType<Message<true>>(interaction.targetMessage);
+      expectType<Message<true> | null>(interaction.options.getMessage('_MESSAGE'));
     } else if (interaction.inRawGuild()) {
       expectType<Message<false>>(interaction.targetMessage);
+      expectType<Message<false> | null>(interaction.options.getMessage('_MESSAGE'));
     } else if (interaction.inGuild()) {
       expectType<Message>(interaction.targetMessage);
+      expectType<Message | null>(interaction.options.getMessage('_MESSAGE'));
+    }
+  }
+
+  if (
+    interaction.type === InteractionType.ApplicationCommand &&
+    interaction.commandType === ApplicationCommandType.User
+  ) {
+    expectType<User>(interaction.targetUser);
+    expectType<GuildMember | APIInteractionGuildMember | null>(interaction.targetMember);
+    expectType<User | null>(interaction.options.getUser('user'));
+    expectType<GuildMember | APIInteractionDataResolvedGuildMember | null>(interaction.options.getMember('user'));
+    if (interaction.inCachedGuild()) {
+      expectType<GuildMember | null>(interaction.targetMember);
+      expectType<GuildMember | null>(interaction.options.getMember('user'));
+    } else if (interaction.inRawGuild()) {
+      expectType<APIInteractionGuildMember | null>(interaction.targetMember);
+      expectType<APIInteractionDataResolvedGuildMember | null>(interaction.options.getMember('user'));
+    } else if (interaction.inGuild()) {
+      expectType<GuildMember | APIInteractionGuildMember | null>(interaction.targetMember);
+      expectType<GuildMember | APIInteractionDataResolvedGuildMember | null>(interaction.options.getMember('user'));
     }
   }
 
@@ -1732,19 +2012,19 @@ client.on('interactionCreate', async interaction => {
       expectType<ButtonComponent>(interaction.component);
       expectType<Message<true>>(interaction.message);
       expectType<Guild>(interaction.guild);
-      expectType<Promise<Message<true>>>(interaction.reply({ fetchReply: true }));
+      expectType<Promise<InteractionCallbackResponse>>(interaction.reply({ withResponse: true }));
     } else if (interaction.inRawGuild()) {
       expectAssignable<ButtonInteraction>(interaction);
       expectType<APIButtonComponent>(interaction.component);
       expectType<Message<false>>(interaction.message);
       expectType<null>(interaction.guild);
-      expectType<Promise<Message<false>>>(interaction.reply({ fetchReply: true }));
+      expectType<Promise<InteractionCallbackResponse>>(interaction.reply({ withResponse: true }));
     } else if (interaction.inGuild()) {
       expectAssignable<ButtonInteraction>(interaction);
       expectType<ButtonComponent | APIButtonComponent>(interaction.component);
       expectType<Message>(interaction.message);
       expectAssignable<Guild | null>(interaction.guild);
-      expectType<Promise<Message>>(interaction.reply({ fetchReply: true }));
+      expectType<Promise<InteractionCallbackResponse>>(interaction.reply({ withResponse: true }));
     }
   }
 
@@ -1757,22 +2037,22 @@ client.on('interactionCreate', async interaction => {
     expectType<Message>(interaction.message);
     if (interaction.inCachedGuild()) {
       expectAssignable<StringSelectMenuInteraction>(interaction);
-      expectType<SelectMenuComponent>(interaction.component);
+      expectType<StringSelectMenuComponent>(interaction.component);
       expectType<Message<true>>(interaction.message);
       expectType<Guild>(interaction.guild);
-      expectType<Promise<Message<true>>>(interaction.reply({ fetchReply: true }));
+      expectType<Promise<InteractionCallbackResponse>>(interaction.reply({ withResponse: true }));
     } else if (interaction.inRawGuild()) {
       expectAssignable<StringSelectMenuInteraction>(interaction);
       expectType<APIStringSelectComponent>(interaction.component);
       expectType<Message<false>>(interaction.message);
       expectType<null>(interaction.guild);
-      expectType<Promise<Message<false>>>(interaction.reply({ fetchReply: true }));
+      expectType<Promise<InteractionCallbackResponse>>(interaction.reply({ withResponse: true }));
     } else if (interaction.inGuild()) {
       expectAssignable<StringSelectMenuInteraction>(interaction);
-      expectType<SelectMenuComponent | APIStringSelectComponent>(interaction.component);
+      expectType<StringSelectMenuComponent | APIStringSelectComponent>(interaction.component);
       expectType<Message>(interaction.message);
       expectType<Guild | null>(interaction.guild);
-      expectType<Promise<Message>>(interaction.reply({ fetchReply: true }));
+      expectType<Promise<InteractionCallbackResponse>>(interaction.reply({ withResponse: true }));
     }
   }
 
@@ -1783,21 +2063,15 @@ client.on('interactionCreate', async interaction => {
     if (interaction.inRawGuild()) {
       expectNotAssignable<Interaction<'cached'>>(interaction);
       expectAssignable<ChatInputCommandInteraction>(interaction);
-      expectType<Promise<Message<false>>>(interaction.reply({ fetchReply: true }));
+      expectType<Promise<InteractionCallbackResponse>>(interaction.reply({ withResponse: true }));
       expectType<APIInteractionDataResolvedGuildMember | null>(interaction.options.getMember('test'));
 
       expectType<APIInteractionDataResolvedChannel>(interaction.options.getChannel('test', true));
       expectType<APIRole>(interaction.options.getRole('test', true));
     } else if (interaction.inCachedGuild()) {
-      const msg = await interaction.reply({ fetchReply: true });
-      const btn = await msg.awaitMessageComponent({ componentType: ComponentType.Button });
-
-      expectType<Message<true>>(msg);
-      expectType<ButtonInteraction<'cached'>>(btn);
-
       expectType<GuildMember | null>(interaction.options.getMember('test'));
       expectAssignable<ChatInputCommandInteraction>(interaction);
-      expectType<Promise<Message<true>>>(interaction.reply({ fetchReply: true }));
+      expectType<Promise<InteractionCallbackResponse>>(interaction.reply({ withResponse: true }));
 
       expectType<GuildBasedChannel>(interaction.options.getChannel('test', true));
       expectType<Role>(interaction.options.getRole('test', true));
@@ -1814,14 +2088,14 @@ client.on('interactionCreate', async interaction => {
       expectType<ForumChannel | VoiceChannel>(
         interaction.options.getChannel('test', true, [ChannelType.GuildForum, ChannelType.GuildVoice]),
       );
+      expectType<TextChannel>(interaction.options.getChannel('test', true, [ChannelType.GuildText] as const));
       expectType<ForumChannel | VoiceChannel | null>(
         interaction.options.getChannel('test', false, [ChannelType.GuildForum, ChannelType.GuildVoice]),
       );
+      expectType<MediaChannel>(interaction.options.getChannel('test', true, [ChannelType.GuildMedia]));
     } else {
-      // @ts-expect-error
-      consumeCachedCommand(interaction);
       expectType<ChatInputCommandInteraction>(interaction);
-      expectType<Promise<Message>>(interaction.reply({ fetchReply: true }));
+      expectType<Promise<InteractionCallbackResponse>>(interaction.reply({ withResponse: true }));
       expectType<APIInteractionDataResolvedGuildMember | GuildMember | null>(interaction.options.getMember('test'));
 
       expectType<GuildBasedChannel | APIInteractionDataResolvedChannel>(interaction.options.getChannel('test', true));
@@ -1836,7 +2110,7 @@ client.on('interactionCreate', async interaction => {
     const requiredOption = interaction.options.get('name', true);
     expectType<CommandInteractionOption | null>(optionalOption);
     expectType<CommandInteractionOption>(requiredOption);
-    expectType<CommandInteractionOption[] | undefined>(requiredOption.options);
+    expectType<readonly CommandInteractionOption[] | undefined>(requiredOption.options);
 
     expectType<string | null>(interaction.options.getString('name', booleanValue));
     expectType<string | null>(interaction.options.getString('name', false));
@@ -1851,11 +2125,15 @@ client.on('interactionCreate', async interaction => {
     expectType<string | null>(interaction.options.getSubcommandGroup());
     expectType<string | null>(interaction.options.getSubcommandGroup(booleanValue));
     expectType<string | null>(interaction.options.getSubcommandGroup(false));
+
+    // @ts-expect-error
+    interaction.options.getMessage('name');
   }
 
   if (interaction.isRepliable()) {
     expectAssignable<RepliableInteraction>(interaction);
     interaction.reply('test');
+    interaction.reply({ withResponse: false });
   }
 
   if (
@@ -1872,29 +2150,35 @@ client.on('interactionCreate', async interaction => {
     if (interaction.inCachedGuild()) {
       expectAssignable<ModalSubmitInteraction>(interaction);
       expectType<Guild>(interaction.guild);
-      expectType<Promise<Message<true>>>(interaction.reply({ content: 'a', fetchReply: true }));
-      expectType<Promise<Message<true>>>(interaction.deferReply({ fetchReply: true }));
+      expectType<Promise<InteractionCallbackResponse>>(interaction.reply({ content: 'a', withResponse: true }));
+      expectType<Promise<InteractionCallbackResponse>>(interaction.deferReply({ withResponse: true }));
+      expectType<Promise<undefined>>(interaction.deferReply());
       expectType<Promise<Message<true>>>(interaction.editReply({ content: 'a' }));
       expectType<Promise<Message<true>>>(interaction.fetchReply());
-      expectType<Promise<Message<true>>>(interaction.deferUpdate({ fetchReply: true }));
+      expectType<Promise<InteractionCallbackResponse>>(interaction.deferUpdate({ withResponse: true }));
+      expectType<Promise<undefined>>(interaction.deferUpdate());
       expectType<Promise<Message<true>>>(interaction.followUp({ content: 'a' }));
     } else if (interaction.inRawGuild()) {
       expectAssignable<ModalSubmitInteraction>(interaction);
       expectType<null>(interaction.guild);
-      expectType<Promise<Message<false>>>(interaction.reply({ content: 'a', fetchReply: true }));
-      expectType<Promise<Message<false>>>(interaction.deferReply({ fetchReply: true }));
+      expectType<Promise<InteractionCallbackResponse>>(interaction.reply({ content: 'a', withResponse: true }));
+      expectType<Promise<InteractionCallbackResponse>>(interaction.deferReply({ withResponse: true }));
+      expectType<Promise<undefined>>(interaction.deferReply());
       expectType<Promise<Message<false>>>(interaction.editReply({ content: 'a' }));
       expectType<Promise<Message<false>>>(interaction.fetchReply());
-      expectType<Promise<Message<false>>>(interaction.deferUpdate({ fetchReply: true }));
+      expectType<Promise<InteractionCallbackResponse>>(interaction.deferUpdate({ withResponse: true }));
+      expectType<Promise<undefined>>(interaction.deferUpdate());
       expectType<Promise<Message<false>>>(interaction.followUp({ content: 'a' }));
     } else if (interaction.inGuild()) {
       expectAssignable<ModalSubmitInteraction>(interaction);
       expectType<Guild | null>(interaction.guild);
-      expectType<Promise<Message>>(interaction.reply({ content: 'a', fetchReply: true }));
-      expectType<Promise<Message>>(interaction.deferReply({ fetchReply: true }));
+      expectType<Promise<InteractionCallbackResponse>>(interaction.reply({ content: 'a', withResponse: true }));
+      expectType<Promise<InteractionCallbackResponse>>(interaction.deferReply({ withResponse: true }));
+      expectType<Promise<undefined>>(interaction.deferReply());
       expectType<Promise<Message>>(interaction.editReply({ content: 'a' }));
       expectType<Promise<Message>>(interaction.fetchReply());
-      expectType<Promise<Message>>(interaction.deferUpdate({ fetchReply: true }));
+      expectType<Promise<InteractionCallbackResponse>>(interaction.deferUpdate({ withResponse: true }));
+      expectType<Promise<undefined>>(interaction.deferUpdate());
       expectType<Promise<Message>>(interaction.followUp({ content: 'a' }));
     }
   }
@@ -1904,12 +2188,6 @@ declare const shard: Shard;
 
 shard.on('death', process => {
   expectType<ChildProcess | Worker>(process);
-});
-
-declare const webSocketShard: WebSocketShard;
-
-webSocketShard.on('close', event => {
-  expectType<CloseEvent>(event);
 });
 
 declare const collector: Collector<string, Interaction, string[]>;
@@ -1925,7 +2203,7 @@ collector.on('dispose', (vals, ...other) => {
 });
 
 collector.on('end', (collection, reason) => {
-  expectType<Collection<string, Interaction>>(collection);
+  expectType<ReadonlyCollection<string, Interaction>>(collection);
   expectType<string>(reason);
 });
 
@@ -1935,7 +2213,7 @@ collector.on('end', (collection, reason) => {
   }
 })();
 
-expectType<Promise<number | null>>(shard.eval(c => c.readyTimestamp));
+expectType<Promise<number | null>>(shard.eval(client => client.readyTimestamp));
 
 // Test audit logs
 expectType<Promise<GuildAuditLogs<AuditLogEvent.MemberKick>>>(guild.fetchAuditLogs({ type: AuditLogEvent.MemberKick }));
@@ -1948,7 +2226,7 @@ expectType<Promise<GuildAuditLogs<AuditLogEvent.IntegrationUpdate>>>(
   guild.fetchAuditLogs({ type: AuditLogEvent.IntegrationUpdate }),
 );
 
-expectType<Promise<GuildAuditLogs<null>>>(guild.fetchAuditLogs({ type: null }));
+expectType<Promise<GuildAuditLogs<AuditLogEvent>>>(guild.fetchAuditLogs({ type: null }));
 expectType<Promise<GuildAuditLogs<AuditLogEvent>>>(guild.fetchAuditLogs());
 
 expectType<Promise<GuildAuditLogsEntry<AuditLogEvent.MemberKick, 'Delete', 'User'> | undefined>>(
@@ -1958,16 +2236,21 @@ expectAssignable<Promise<GuildAuditLogsEntry<AuditLogEvent.MemberKick, 'Delete',
   guild.fetchAuditLogs({ type: AuditLogEvent.MemberKick }).then(al => al.entries.first()),
 );
 
-expectType<Promise<GuildAuditLogsEntry<null, GuildAuditLogsActionType, GuildAuditLogsTargetType> | undefined>>(
+expectType<Promise<GuildAuditLogsEntry<AuditLogEvent, GuildAuditLogsActionType, GuildAuditLogsTargetType> | undefined>>(
   guild.fetchAuditLogs({ type: null }).then(al => al.entries.first()),
 );
-expectType<Promise<GuildAuditLogsEntry<null, GuildAuditLogsActionType, GuildAuditLogsTargetType> | undefined>>(
+expectType<Promise<GuildAuditLogsEntry<AuditLogEvent, GuildAuditLogsActionType, GuildAuditLogsTargetType> | undefined>>(
   guild.fetchAuditLogs().then(al => al.entries.first()),
 );
 
-expectType<Promise<null | undefined>>(
+expectType<Promise<{ integrationType: string } | null | undefined>>(
   guild.fetchAuditLogs({ type: AuditLogEvent.MemberKick }).then(al => al.entries.first()?.extra),
 );
+
+expectType<Promise<{ integrationType: string } | null | undefined>>(
+  guild.fetchAuditLogs({ type: AuditLogEvent.MemberRoleUpdate }).then(al => al.entries.first()?.extra),
+);
+
 expectType<Promise<StageChannel | { id: Snowflake } | undefined>>(
   guild.fetchAuditLogs({ type: AuditLogEvent.StageInstanceCreate }).then(al => al.entries.first()?.extra),
 );
@@ -1975,15 +2258,28 @@ expectType<Promise<{ channel: GuildTextBasedChannel | { id: Snowflake }; count: 
   guild.fetchAuditLogs({ type: AuditLogEvent.MessageDelete }).then(al => al.entries.first()?.extra),
 );
 
-expectType<Promise<User | null | undefined>>(
+expectType<Promise<User | PartialUser | null | undefined>>(
   guild.fetchAuditLogs({ type: AuditLogEvent.MemberKick }).then(al => al.entries.first()?.target),
 );
 expectType<Promise<StageInstance | undefined>>(
   guild.fetchAuditLogs({ type: AuditLogEvent.StageInstanceCreate }).then(al => al.entries.first()?.target),
 );
-expectType<Promise<User | undefined>>(
+expectType<Promise<User | null | undefined>>(
   guild.fetchAuditLogs({ type: AuditLogEvent.MessageDelete }).then(al => al.entries.first()?.target),
 );
+expectType<Promise<GuildTextBasedChannel | { id: string } | undefined>>(
+  guild.fetchAuditLogs({ type: AuditLogEvent.MessageBulkDelete }).then(al => al.entries.first()?.target),
+);
+
+declare const AuditLogChange: AuditLogChange;
+// @ts-expect-error
+expectType<boolean | undefined>(AuditLogChange.old);
+// @ts-expect-error
+expectType<boolean | undefined>(AuditLogChange.new);
+if (AuditLogChange.key === 'available') {
+  expectType<boolean | undefined>(AuditLogChange.old);
+  expectType<boolean | undefined>(AuditLogChange.new);
+}
 
 declare const TextBasedChannel: TextBasedChannel;
 declare const TextBasedChannelTypes: TextBasedChannelTypes;
@@ -1996,6 +2292,7 @@ expectType<TextBasedChannel>(TextBasedChannel);
 expectType<
   | ChannelType.GuildText
   | ChannelType.DM
+  | ChannelType.GroupDM
   | ChannelType.GuildAnnouncement
   | ChannelType.GuildVoice
   | ChannelType.GuildStageVoice
@@ -2003,9 +2300,9 @@ expectType<
 >(TextBasedChannelTypes);
 expectType<StageChannel | VoiceChannel>(VoiceBasedChannel);
 expectType<GuildBasedChannel>(GuildBasedChannel);
-expectType<CategoryChannel | NewsChannel | StageChannel | TextChannel | VoiceChannel | ForumChannel>(
-  NonThreadGuildBasedChannel,
-);
+expectType<
+  CategoryChannel | AnnouncementChannel | StageChannel | TextChannel | VoiceChannel | ForumChannel | MediaChannel
+>(NonThreadGuildBasedChannel);
 expectType<GuildTextBasedChannel>(GuildTextBasedChannel);
 
 const button = new ButtonBuilder({
@@ -2082,17 +2379,44 @@ chatInputInteraction.showModal({
   ],
 });
 
-declare const selectMenuData: APISelectMenuComponent;
-StringSelectMenuBuilder.from(selectMenuData);
+declare const stringSelectMenuData: APIStringSelectComponent;
+StringSelectMenuBuilder.from(stringSelectMenuData);
 
-declare const selectMenuComp: SelectMenuComponent;
-StringSelectMenuBuilder.from(selectMenuComp);
+declare const userSelectMenuData: APIUserSelectComponent;
+UserSelectMenuBuilder.from(userSelectMenuData);
+
+declare const roleSelectMenuData: APIRoleSelectComponent;
+RoleSelectMenuBuilder.from(roleSelectMenuData);
+
+declare const channelSelectMenuData: APIChannelSelectComponent;
+ChannelSelectMenuBuilder.from(channelSelectMenuData);
+
+declare const mentionableSelectMenuData: APIMentionableSelectComponent;
+MentionableSelectMenuBuilder.from(mentionableSelectMenuData);
+
+declare const stringSelectMenuComp: StringSelectMenuComponent;
+StringSelectMenuBuilder.from(stringSelectMenuComp);
+
+declare const userSelectMenuComp: UserSelectMenuComponent;
+UserSelectMenuBuilder.from(userSelectMenuComp);
+
+declare const roleSelectMenuComp: RoleSelectMenuComponent;
+RoleSelectMenuBuilder.from(roleSelectMenuComp);
+
+declare const channelSelectMenuComp: ChannelSelectMenuComponent;
+ChannelSelectMenuBuilder.from(channelSelectMenuComp);
+
+declare const mentionableSelectMenuComp: MentionableSelectMenuComponent;
+MentionableSelectMenuBuilder.from(mentionableSelectMenuComp);
 
 declare const buttonData: APIButtonComponent;
 ButtonBuilder.from(buttonData);
 
 declare const buttonComp: ButtonComponent;
 ButtonBuilder.from(buttonComp);
+
+declare const modalData: APIModalInteractionResponseCallbackData;
+ModalBuilder.from(modalData);
 
 declare const textInputData: APITextInputComponent;
 TextInputBuilder.from(textInputData);
@@ -2124,16 +2448,12 @@ declare const anyComponentsActionRowComp: ActionRow<ActionRowComponent>;
 expectType<ActionRowBuilder>(ActionRowBuilder.from(anyComponentsActionRowData));
 expectType<ActionRowBuilder>(ActionRowBuilder.from(anyComponentsActionRowComp));
 
-declare const stageChannel: StageChannel;
-declare const partialGroupDMChannel: PartialGroupDMChannel;
+type UserMentionChannels = DMChannel | PartialDMChannel;
+declare const channelMentionChannels: Exclude<Channel | DirectoryChannel, UserMentionChannels>;
+declare const userMentionChannels: UserMentionChannels;
 
-expectType<ChannelMention>(textChannel.toString());
-expectType<ChannelMention>(voiceChannel.toString());
-expectType<ChannelMention>(newsChannel.toString());
-expectType<ChannelMention>(threadChannel.toString());
-expectType<ChannelMention>(stageChannel.toString());
-expectType<ChannelMention>(partialGroupDMChannel.toString());
-expectType<UserMention>(dmChannel.toString());
+expectType<ChannelMention>(channelMentionChannels.toString());
+expectType<UserMention>(userMentionChannels.toString());
 expectType<UserMention>(user.toString());
 expectType<UserMention>(guildMember.toString());
 
@@ -2145,17 +2465,31 @@ declare const snowflake: Snowflake;
 expectType<Promise<Message>>(webhook.send('content'));
 expectType<Promise<Message>>(webhook.editMessage(snowflake, 'content'));
 expectType<Promise<Message>>(webhook.fetchMessage(snowflake));
+expectType<Promise<Webhook>>(webhook.edit({ name: 'name' }));
 
 expectType<Promise<APIMessage>>(webhookClient.send('content'));
 expectType<Promise<APIMessage>>(webhookClient.editMessage(snowflake, 'content'));
 expectType<Promise<APIMessage>>(webhookClient.fetchMessage(snowflake));
 
+expectType<Client<true>>(interactionWebhook.client);
 expectType<Promise<Message>>(interactionWebhook.send('content'));
 expectType<Promise<Message>>(interactionWebhook.editMessage(snowflake, 'content'));
 expectType<Promise<Message>>(interactionWebhook.fetchMessage(snowflake));
 
+declare const partialGroupDMChannel: PartialGroupDMChannel;
 declare const categoryChannel: CategoryChannel;
+declare const stageChannel: StageChannel;
 declare const forumChannel: ForumChannel;
+declare const mediaChannel: MediaChannel;
+declare const threadOnlyChannel: ThreadOnlyChannel;
+
+// Threads have messages.
+expectType<GuildMessageManager>(threadChannel.messages);
+
+// Thread-only channels have threads—not messages.
+notPropertyOf(threadOnlyChannel, 'messages');
+notPropertyOf(forumChannel, 'messages');
+notPropertyOf(mediaChannel, 'messages');
 
 await forumChannel.edit({
   availableTags: [...forumChannel.availableTags, { name: 'tag' }],
@@ -2170,18 +2504,18 @@ expectType<Readonly<ChannelFlagsBitField>>(stageChannel.flags);
 expectType<Readonly<ChannelFlagsBitField>>(forumChannel.flags);
 expectType<Readonly<ChannelFlagsBitField>>(dmChannel.flags);
 expectType<Readonly<ChannelFlagsBitField>>(categoryChannel.flags);
-expectType<Readonly<ChannelFlagsBitField>>(newsChannel.flags);
+expectType<Readonly<ChannelFlagsBitField>>(announcementChannel.flags);
 expectType<Readonly<ChannelFlagsBitField>>(categoryChannel.flags);
 expectType<Readonly<ChannelFlagsBitField>>(threadChannel.flags);
 
 expectType<null>(partialGroupDMChannel.flags);
 
 // Select menu type narrowing
-if (interaction.isAnySelectMenu()) {
-  expectType<AnySelectMenuInteraction>(interaction);
+if (interaction.isSelectMenu()) {
+  expectType<SelectMenuInteraction>(interaction);
 }
 
-declare const anySelectMenu: AnySelectMenuInteraction;
+declare const anySelectMenu: SelectMenuInteraction;
 
 if (anySelectMenu.isStringSelectMenu()) {
   expectType<StringSelectMenuInteraction>(anySelectMenu);
@@ -2201,3 +2535,262 @@ client.on('guildAuditLogEntryCreate', (auditLogEntry, guild) => {
 });
 
 expectType<Readonly<GuildMemberFlagsBitField>>(guildMember.flags);
+
+declare const emojiResolvable: GuildEmoji | Emoji | string;
+
+{
+  const onboarding = await guild.fetchOnboarding();
+  expectType<GuildOnboarding>(onboarding);
+
+  expectType<GuildOnboarding>(await guild.editOnboarding(onboarding));
+
+  await guild.editOnboarding({
+    defaultChannels: onboarding.defaultChannels,
+    enabled: onboarding.enabled,
+    mode: onboarding.mode,
+    prompts: onboarding.prompts,
+  });
+
+  const prompt = onboarding.prompts.first()!;
+  const option = prompt.options.first()!;
+
+  await guild.editOnboarding({ prompts: [prompt] });
+  await guild.editOnboarding({ prompts: [{ ...prompt, options: [option] }] });
+
+  await guild.editOnboarding({ prompts: [{ ...prompt, options: [{ ...option, emoji: emojiResolvable }] }] });
+}
+
+declare const partialDMChannel: PartialDMChannel;
+expectType<true>(partialDMChannel.partial);
+expectType<undefined>(partialDMChannel.lastMessageId);
+
+declare const partialGuildMember: PartialGuildMember;
+expectType<true>(partialGuildMember.partial);
+expectType<null>(partialGuildMember.joinedAt);
+expectType<null>(partialGuildMember.joinedTimestamp);
+expectType<null>(partialGuildMember.pending);
+
+declare const partialMessage: PartialMessage;
+expectType<true>(partialMessage.partial);
+expectType<null>(partialMessage.type);
+expectType<null>(partialMessage.system);
+expectType<null>(partialMessage.pinned);
+expectType<null>(partialMessage.tts);
+expectAssignable<null | Message['content']>(partialMessage.content);
+expectAssignable<null | Message['cleanContent']>(partialMessage.cleanContent);
+expectAssignable<null | Message['author']>(partialMessage.author);
+
+declare const partialMessageReaction: PartialMessageReaction;
+expectType<true>(partialMessageReaction.partial);
+expectType<null>(partialMessageReaction.count);
+
+declare const partialThreadMember: PartialThreadMember;
+expectType<true>(partialThreadMember.partial);
+expectType<null>(partialThreadMember.flags);
+expectType<null>(partialThreadMember.joinedAt);
+expectType<null>(partialThreadMember.joinedTimestamp);
+
+declare const partialUser: PartialUser;
+expectType<true>(partialUser.partial);
+expectType<null>(partialUser.username);
+expectType<null>(partialUser.tag);
+expectType<null>(partialUser.discriminator);
+
+declare const emoji: Emoji;
+{
+  expectType<PartialEmojiOnlyId>(resolvePartialEmoji('12345678901234567'));
+  expectType<PartialEmoji | null>(resolvePartialEmoji(emoji));
+}
+
+declare const application: ClientApplication;
+declare const entitlement: Entitlement;
+declare const sku: SKU;
+{
+  expectType<Collection<Snowflake, SKU>>(await application.fetchSKUs());
+  expectType<Collection<Snowflake, Entitlement>>(await application.entitlements.fetch());
+
+  await application.entitlements.fetch({
+    guild,
+    skus: ['12345678901234567', sku],
+    user,
+    excludeEnded: true,
+    limit: 10,
+  });
+
+  await application.entitlements.createTest({ sku: '12345678901234567', user });
+  await application.entitlements.createTest({ sku, guild });
+
+  await application.entitlements.deleteTest(entitlement);
+
+  await application.entitlements.consume(snowflake);
+
+  expectType<boolean>(entitlement.isActive());
+
+  if (entitlement.isUserSubscription()) {
+    expectType<Snowflake>(entitlement.userId);
+    expectType<User>(await entitlement.fetchUser());
+    expectType<null>(entitlement.guildId);
+    expectType<null>(entitlement.guild);
+
+    await application.entitlements.deleteTest(entitlement);
+  } else if (entitlement.isGuildSubscription()) {
+    expectType<Snowflake>(entitlement.guildId);
+    expectType<Guild>(entitlement.guild);
+
+    await application.entitlements.deleteTest(entitlement);
+  }
+
+  if (entitlement.isTest()) {
+    expectType<null>(entitlement.startsTimestamp);
+    expectType<null>(entitlement.endsTimestamp);
+    expectType<null>(entitlement.startsAt);
+    expectType<null>(entitlement.endsAt);
+  }
+
+  client.on(Events.InteractionCreate, async interaction => {
+    expectType<Collection<Snowflake, Entitlement>>(interaction.entitlements);
+  });
+}
+
+await textChannel.send({
+  poll: {
+    question: {
+      text: 'Question',
+    },
+    duration: 60,
+    answers: [{ text: 'Answer 1' }, { text: 'Answer 2', emoji: '<:1blade:874989932983238726>' }],
+    allowMultiselect: false,
+  },
+});
+
+declare const poll: Poll;
+declare const message: Message;
+declare const pollData: PollData;
+{
+  expectType<Message>(await poll.end());
+
+  const answer = poll.answers.first()!;
+  expectType<number>(answer.voteCount);
+
+  expectType<Collection<Snowflake, User>>(await answer.fetchVoters({ after: snowflake, limit: 10 }));
+
+  await messageManager.endPoll(snowflake);
+  await messageManager.fetchPollAnswerVoters({
+    messageId: snowflake,
+    answerId: 1,
+  });
+
+  await message.edit({
+    // @ts-expect-error
+    poll: pollData,
+  });
+
+  await chatInputInteraction.editReply({ poll: pollData });
+}
+
+expectType<Collection<Snowflake, StickerPack>>(await client.fetchStickerPacks());
+expectType<Collection<Snowflake, StickerPack>>(await client.fetchStickerPacks({}));
+expectType<StickerPack>(await client.fetchStickerPacks({ packId: snowflake }));
+
+client.on('interactionCreate', interaction => {
+  if (!interaction.channel) {
+    return;
+  }
+
+  // @ts-expect-error
+  interaction.channel.send();
+
+  if (interaction.channel.isSendable()) {
+    expectType<SendableChannels>(interaction.channel);
+    interaction.channel.send({ embeds: [] });
+  }
+});
+
+declare const guildScheduledEventManager: GuildScheduledEventManager;
+await guildScheduledEventManager.edit(snowflake, { recurrenceRule: null });
+
+{
+  expectNotAssignable<GuildScheduledEventRecurrenceRuleOptions>({
+    startAt: new Date(),
+    frequency: GuildScheduledEventRecurrenceRuleFrequency.Yearly,
+    interval: 1,
+    byMonth: [GuildScheduledEventRecurrenceRuleMonth.May],
+    byMonthDay: [4],
+    // Invalid property
+    byWeekday: [GuildScheduledEventRecurrenceRuleWeekday.Monday],
+  });
+
+  expectNotAssignable<GuildScheduledEventRecurrenceRuleOptions>({
+    startAt: new Date(),
+    frequency: GuildScheduledEventRecurrenceRuleFrequency.Yearly,
+    interval: 1,
+    byMonth: [GuildScheduledEventRecurrenceRuleMonth.May],
+    byMonthDay: [4],
+    // Invalid property
+    byNWeekday: [{ n: 1, day: GuildScheduledEventRecurrenceRuleWeekday.Monday }],
+  });
+
+  expectAssignable<GuildScheduledEventRecurrenceRuleOptions>({
+    startAt: new Date(),
+    frequency: GuildScheduledEventRecurrenceRuleFrequency.Yearly,
+    interval: 1,
+    byMonth: [GuildScheduledEventRecurrenceRuleMonth.May],
+    byMonthDay: [4],
+  });
+}
+
+{
+  expectAssignable<GuildScheduledEventRecurrenceRuleOptions>({
+    startAt: new Date(),
+    frequency: GuildScheduledEventRecurrenceRuleFrequency.Monthly,
+    interval: 1,
+    byNWeekday: [{ n: 1, day: GuildScheduledEventRecurrenceRuleWeekday.Monday }],
+  });
+
+  expectNotAssignable<GuildScheduledEventRecurrenceRuleOptions>({
+    startAt: new Date(),
+    frequency: GuildScheduledEventRecurrenceRuleFrequency.Monthly,
+    interval: 1,
+    byNWeekday: [{ n: 1, day: GuildScheduledEventRecurrenceRuleWeekday.Monday }],
+    // Invalid property
+    byWeekday: [GuildScheduledEventRecurrenceRuleWeekday.Monday],
+  });
+}
+
+{
+  expectAssignable<GuildScheduledEventRecurrenceRuleOptions>({
+    startAt: new Date(),
+    frequency: GuildScheduledEventRecurrenceRuleFrequency.Weekly,
+    interval: 1,
+    byWeekday: [GuildScheduledEventRecurrenceRuleWeekday.Monday],
+  });
+
+  expectNotAssignable<GuildScheduledEventRecurrenceRuleOptions>({
+    startAt: new Date(),
+    frequency: GuildScheduledEventRecurrenceRuleFrequency.Weekly,
+    interval: 1,
+    byWeekday: [GuildScheduledEventRecurrenceRuleWeekday.Monday],
+    // Invalid property
+    byNWeekday: [{ n: 1, day: GuildScheduledEventRecurrenceRuleWeekday.Monday }],
+  });
+}
+
+{
+  expectNotAssignable<GuildScheduledEventRecurrenceRuleOptions>({
+    startAt: new Date(),
+    frequency: GuildScheduledEventRecurrenceRuleFrequency.Daily,
+    interval: 1,
+    byWeekday: [GuildScheduledEventRecurrenceRuleWeekday.Monday],
+    // Invalid property
+    byNWeekday: [{ n: 1, day: GuildScheduledEventRecurrenceRuleWeekday.Monday }],
+  });
+
+  expectNotAssignable<GuildScheduledEventRecurrenceRuleOptions>({
+    startAt: new Date(),
+    frequency: GuildScheduledEventRecurrenceRuleFrequency.Daily,
+    interval: 1,
+    byWeekday: [GuildScheduledEventRecurrenceRuleWeekday.Monday],
+    // Invalid property
+    byMonth: [GuildScheduledEventRecurrenceRuleMonth.May],
+  });
+}

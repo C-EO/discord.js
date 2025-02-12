@@ -9,10 +9,12 @@
 		<a href="https://www.npmjs.com/package/@discordjs/core"><img src="https://img.shields.io/npm/v/@discordjs/core.svg?maxAge=3600" alt="npm version" /></a>
 		<a href="https://www.npmjs.com/package/@discordjs/core"><img src="https://img.shields.io/npm/dt/@discordjs/core.svg?maxAge=3600" alt="npm downloads" /></a>
 		<a href="https://github.com/discordjs/discord.js/actions"><img src="https://github.com/discordjs/discord.js/actions/workflows/test.yml/badge.svg" alt="Build status" /></a>
-		<a href="https://codecov.io/gh/discordjs/discord.js" ><img src="https://codecov.io/gh/discordjs/discord.js/branch/main/graph/badge.svg?precision=2&flag=core" alt="Code coverage" /></a>
+		<a href="https://github.com/discordjs/discord.js/commits/main/packages/core"><img alt="Last commit." src="https://img.shields.io/github/last-commit/discordjs/discord.js?logo=github&logoColor=ffffff&path=packages%2Fcore"></a>
+		<a href="https://codecov.io/gh/discordjs/discord.js"><img src="https://codecov.io/gh/discordjs/discord.js/branch/main/graph/badge.svg?precision=2&flag=core" alt="Code coverage" /></a>
 	</p>
 	<p>
 		<a href="https://vercel.com/?utm_source=discordjs&utm_campaign=oss"><img src="https://raw.githubusercontent.com/discordjs/discord.js/main/.github/powered-by-vercel.svg" alt="Vercel" /></a>
+		<a href="https://www.cloudflare.com"><img src="https://raw.githubusercontent.com/discordjs/discord.js/main/.github/powered-by-workers.png" alt="Cloudflare Workers" height="44" /></a>
 	</p>
 </div>
 
@@ -22,7 +24,7 @@
 
 ## Installation
 
-**Node.js 16.9.0 or newer is required.**
+**Node.js 22.12.0 or newer is required.**
 
 ```sh
 npm install @discordjs/core
@@ -38,15 +40,16 @@ import { WebSocketManager } from '@discordjs/ws';
 import { GatewayDispatchEvents, GatewayIntentBits, InteractionType, MessageFlags, Client } from '@discordjs/core';
 
 // Create REST and WebSocket managers directly
-const rest = new REST({ version: '10' }).setToken(token);
-const ws = new WebSocketManager({
-	token,
+const rest = new REST({ version: '10' }).setToken(process.env.DISCORD_TOKEN);
+
+const gateway = new WebSocketManager({
+	token: process.env.DISCORD_TOKEN,
 	intents: GatewayIntentBits.GuildMessages | GatewayIntentBits.MessageContent,
 	rest,
 });
 
 // Create a client to emit relevant events.
-const client = new Client({ rest, ws });
+const client = new Client({ rest, gateway });
 
 // Listen for interactions
 // Each event contains an `api` prop along with the event data that allows you to interface with the Discord REST API
@@ -62,7 +65,7 @@ client.on(GatewayDispatchEvents.InteractionCreate, async ({ data: interaction, a
 client.once(GatewayDispatchEvents.Ready, () => console.log('Ready!'));
 
 // Start the WebSocket connection.
-ws.connect();
+gateway.connect();
 ```
 
 ## Independent REST API Usage

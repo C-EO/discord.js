@@ -1,11 +1,11 @@
 'use strict';
 
-const { userMention } = require('@discordjs/builders');
+const { userMention } = require('@discordjs/formatters');
 const { ChannelType } = require('discord-api-types/v10');
-const { BaseChannel } = require('./BaseChannel');
-const TextBasedChannel = require('./interfaces/TextBasedChannel');
-const MessageManager = require('../managers/MessageManager');
-const Partials = require('../util/Partials');
+const { BaseChannel } = require('./BaseChannel.js');
+const { TextBasedChannel } = require('./interfaces/TextBasedChannel.js');
+const { DMMessageManager } = require('../managers/DMMessageManager.js');
+const { Partials } = require('../util/Partials.js');
 
 /**
  * Represents a direct message channel between two users.
@@ -21,9 +21,9 @@ class DMChannel extends BaseChannel {
 
     /**
      * A manager of the messages belonging to this channel
-     * @type {MessageManager}
+     * @type {DMMessageManager}
      */
-    this.messages = new MessageManager(this);
+    this.messages = new DMMessageManager(this);
   }
 
   _patch(data) {
@@ -38,7 +38,7 @@ class DMChannel extends BaseChannel {
        */
       this.recipientId = recipient.id;
 
-      if ('username' in recipient || this.client.options.partials.includes(Partials.Users)) {
+      if ('username' in recipient || this.client.options.partials.includes(Partials.User)) {
         this.client.users._add(recipient);
       }
     }
@@ -126,4 +126,4 @@ TextBasedChannel.applyToClass(DMChannel, true, [
   'setNSFW',
 ]);
 
-module.exports = DMChannel;
+exports.DMChannel = DMChannel;

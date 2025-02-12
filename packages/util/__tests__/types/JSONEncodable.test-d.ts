@@ -1,10 +1,9 @@
-import { expectType } from 'tsd';
-import type { JSONEncodable } from '../../dist';
-import { isJSONEncodable } from '../../src/index.js';
+import { expectTypeOf } from 'vitest';
+import { isJSONEncodable, type JSONEncodable } from '../../src/index.js';
 
 declare const unknownObj: unknown;
 
 if (isJSONEncodable(unknownObj)) {
-	expectType<JSONEncodable<unknown>>(unknownObj);
-	expectType<unknown>(unknownObj.toJSON());
+	expectTypeOf(unknownObj).toEqualTypeOf<JSONEncodable<unknown>>();
+	expectTypeOf(unknownObj.toJSON()).toEqualTypeOf<unknown>();
 }

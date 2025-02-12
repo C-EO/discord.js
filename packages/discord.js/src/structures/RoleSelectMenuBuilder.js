@@ -1,7 +1,8 @@
 'use strict';
 
-const { RoleSelectMenuBuilder: BuildersRoleSelectMenu, isJSONEncodable } = require('@discordjs/builders');
-const { toSnakeCase } = require('../util/Transformers');
+const { RoleSelectMenuBuilder: BuildersRoleSelectMenu } = require('@discordjs/builders');
+const { isJSONEncodable } = require('@discordjs/util');
+const { toSnakeCase } = require('../util/Transformers.js');
 
 /**
  * Class used to build select menu components to be sent through the API
@@ -22,7 +23,7 @@ class RoleSelectMenuBuilder extends BuildersRoleSelectMenu {
   }
 }
 
-module.exports = RoleSelectMenuBuilder;
+exports.RoleSelectMenuBuilder = RoleSelectMenuBuilder;
 
 /**
  * @external BuildersRoleSelectMenu

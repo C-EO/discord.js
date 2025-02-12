@@ -1,7 +1,8 @@
 'use strict';
 
-const CommandInteraction = require('./CommandInteraction');
-const CommandInteractionOptionResolver = require('./CommandInteractionOptionResolver');
+const { CommandInteraction } = require('./CommandInteraction.js');
+const { CommandInteractionOptionResolver } = require('./CommandInteractionOptionResolver.js');
+const { transformResolved } = require('../util/Util.js');
 
 /**
  * Represents a command interaction.
@@ -18,7 +19,7 @@ class ChatInputCommandInteraction extends CommandInteraction {
     this.options = new CommandInteractionOptionResolver(
       this.client,
       data.data.options?.map(option => this.transformOption(option, data.data.resolved)) ?? [],
-      this.transformResolved(data.data.resolved ?? {}),
+      transformResolved({ client: this.client, guild: this.guild, channel: this.channel }, data.data.resolved),
     );
   }
 
@@ -32,10 +33,10 @@ class ChatInputCommandInteraction extends CommandInteraction {
       this.commandName,
       this.options._group,
       this.options._subcommand,
-      ...this.options._hoistedOptions.map(o => `${o.name}:${o.value}`),
+      ...this.options._hoistedOptions.map(option => `${option.name}:${option.value}`),
     ];
     return `/${properties.filter(Boolean).join(' ')}`;
   }
 }
 
-module.exports = ChatInputCommandInteraction;
+exports.ChatInputCommandInteraction = ChatInputCommandInteraction;

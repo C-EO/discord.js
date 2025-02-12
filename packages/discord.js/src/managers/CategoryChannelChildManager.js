@@ -1,7 +1,7 @@
 'use strict';
 
-const DataManager = require('./DataManager');
-const GuildChannel = require('../structures/GuildChannel');
+const { DataManager } = require('./DataManager.js');
+const { GuildChannel } = require('../structures/GuildChannel.js');
 
 /**
  * Manages API methods for CategoryChannels' children.
@@ -23,7 +23,7 @@ class CategoryChannelChildManager extends DataManager {
    * @readonly
    */
   get cache() {
-    return this.guild.channels.cache.filter(c => c.parentId === this.channel.id);
+    return this.guild.channels.cache.filter(channel => channel.parentId === this.channel.id);
   }
 
   /**
@@ -36,7 +36,7 @@ class CategoryChannelChildManager extends DataManager {
   }
 
   /**
-   * Options for creating a channel using {@link CategoryChannel#createChannel}.
+   * Options for creating a channel using {@link CategoryChannelChildManager#create}.
    * @typedef {Object} CategoryCreateChannelOptions
    * @property {string} name The name for the new channel
    * @property {ChannelType} [type=ChannelType.GuildText] The type of the new channel.
@@ -50,6 +50,8 @@ class CategoryChannelChildManager extends DataManager {
    * @property {number} [rateLimitPerUser] The rate limit per user (slowmode) for the new channel in seconds
    * @property {string} [rtcRegion] The specific region of the new channel.
    * @property {VideoQualityMode} [videoQualityMode] The camera video quality mode of the voice channel
+   * @property {number} [defaultThreadRateLimitPerUser] The initial rate limit per user (slowmode)
+   * to set on newly created threads in a channel.
    * @property {GuildForumTagData[]} [availableTags] The tags that can be used in this channel (forum only).
    * @property {DefaultReactionEmoji} [defaultReactionEmoji]
    * The emoji to show in the add reaction button on a thread in a guild forum channel.
@@ -74,4 +76,4 @@ class CategoryChannelChildManager extends DataManager {
   }
 }
 
-module.exports = CategoryChannelChildManager;
+exports.CategoryChannelChildManager = CategoryChannelChildManager;
