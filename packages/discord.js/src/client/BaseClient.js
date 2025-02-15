@@ -1,34 +1,52 @@
 'use strict';
 
-const EventEmitter = require('node:events');
 const { REST } = require('@discordjs/rest');
-const { DiscordjsTypeError, ErrorCodes } = require('../errors');
-const Options = require('../util/Options');
-const { mergeDefault, flatten } = require('../util/Util');
+const { AsyncEventEmitter } = require('@vladfrangu/async_event_emitter');
+const { Routes } = require('discord-api-types/v10');
+const { DiscordjsTypeError, ErrorCodes } = require('../errors/index.js');
+const { Options } = require('../util/Options.js');
+const { flatten } = require('../util/Util.js');
 
 /**
  * The base class for all clients.
- * @extends {EventEmitter}
+ * @extends {AsyncEventEmitter}
  */
-class BaseClient extends EventEmitter {
+class BaseClient extends AsyncEventEmitter {
   constructor(options = {}) {
-    super({ captureRejections: true });
+    super();
 
     if (typeof options !== 'object' || options === null) {
       throw new DiscordjsTypeError(ErrorCodes.InvalidType, 'options', 'object', true);
     }
 
-    if (options.rest?.userAgentAppendix) {
-      // Merging the default options when a custom user agent appendix is supplied
-      // Replaces the discord.js string. Enforce it.
-      options.rest.userAgentAppendix = `${Options.userAgentAppendix} ${options.rest.userAgentAppendix}`;
-    }
-
+    const defaultOptions = Options.createDefault();
     /**
      * The options the client was instantiated with
      * @type {ClientOptions}
      */
-    this.options = mergeDefault(Options.createDefault(), options);
+    this.options = {
+      ...defaultOptions,
+      ...options,
+      presence: {
+        ...defaultOptions.presence,
+        ...options.presence,
+      },
+      sweepers: {
+        ...defaultOptions.sweepers,
+        ...options.sweepers,
+      },
+      ws: {
+        ...defaultOptions.ws,
+        ...options.ws,
+      },
+      rest: {
+        ...defaultOptions.rest,
+        ...options.rest,
+        userAgentAppendix: options.rest?.userAgentAppendix
+          ? `${Options.userAgentAppendix} ${options.rest.userAgentAppendix}`
+          : Options.userAgentAppendix,
+      },
+    };
 
     /**
      * The REST manager of the client
@@ -42,8 +60,25 @@ class BaseClient extends EventEmitter {
    * @returns {void}
    */
   destroy() {
-    this.rest.requestManager.clearHashSweeper();
-    this.rest.requestManager.clearHandlerSweeper();
+    this.rest.clearHashSweeper();
+    this.rest.clearHandlerSweeper();
+  }
+
+  /**
+   * Options used for deleting a webhook.
+   * @typedef {Object} WebhookDeleteOptions
+   * @property {string} [token] Token of the webhook
+   * @property {string} [reason] The reason for deleting the webhook
+   */
+
+  /**
+   * Deletes a webhook.
+   * @param {Snowflake} id The webhook's id
+   * @param {WebhookDeleteOptions} [options] Options for deleting the webhook
+   * @returns {Promise<void>}
+   */
+  async deleteWebhook(id, { token, reason } = {}) {
+    await this.rest.delete(Routes.webhook(id, token), { auth: !token, reason });
   }
 
   /**
@@ -71,9 +106,13 @@ class BaseClient extends EventEmitter {
   toJSON(...props) {
     return flatten(this, ...props);
   }
+
+  async [Symbol.asyncDispose]() {
+    await this.destroy();
+  }
 }
 
-module.exports = BaseClient;
+exports.BaseClient = BaseClient;
 
 /**
  * @external REST

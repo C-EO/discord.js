@@ -1,6 +1,6 @@
 'use strict';
 
-const Base = require('./Base');
+const { Base } = require('./Base.js');
 
 /**
  * Represents a Client OAuth2 Application Team Member.
@@ -20,14 +20,6 @@ class TeamMember extends Base {
   }
 
   _patch(data) {
-    if ('permissions' in data) {
-      /**
-       * The permissions this Team Member has with regard to the team
-       * @type {string[]}
-       */
-      this.permissions = data.permissions;
-    }
-
     if ('membership_state' in data) {
       /**
        * The permissions this Team Member has with regard to the team
@@ -42,6 +34,14 @@ class TeamMember extends Base {
        * @type {User}
        */
       this.user = this.client.users._add(data.user);
+    }
+
+    if ('role' in data) {
+      /**
+       * The role of this Team Member
+       * @type {TeamMemberRole}
+       */
+      this.role = data.role;
     }
   }
 
@@ -67,4 +67,4 @@ class TeamMember extends Base {
   }
 }
 
-module.exports = TeamMember;
+exports.TeamMember = TeamMember;

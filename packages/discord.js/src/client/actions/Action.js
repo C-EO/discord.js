@@ -1,6 +1,8 @@
 'use strict';
 
-const Partials = require('../../util/Partials');
+const { Poll } = require('../../structures/Poll.js');
+const { PollAnswer } = require('../../structures/PollAnswer.js');
+const { Partials } = require('../../util/Partials.js');
 
 /*
 
@@ -14,7 +16,7 @@ that WebSocket events don't clash with REST methods.
 
 */
 
-class GenericAction {
+class Action {
   constructor(client) {
     this.client = client;
   }
@@ -24,27 +26,24 @@ class GenericAction {
   }
 
   getPayload(data, manager, id, partialType, cache) {
-    const existing = manager.cache.get(id);
-    if (!existing && this.client.options.partials.includes(partialType)) {
-      return manager._add(data, cache);
-    }
-    return existing;
+    return this.client.options.partials.includes(partialType) ? manager._add(data, cache) : manager.cache.get(id);
   }
 
   getChannel(data) {
+    const payloadData = {};
     const id = data.channel_id ?? data.id;
+
+    if (!('recipients' in data)) {
+      // Try to resolve the recipient, but do not add the client user.
+      const recipient = data.author ?? data.user ?? { id: data.user_id };
+      if (recipient.id !== this.client.user.id) payloadData.recipients = [recipient];
+    }
+
+    if (id !== undefined) payloadData.id = id;
+
     return (
       data[this.client.actions.injectedChannel] ??
-      this.getPayload(
-        {
-          id,
-          guild_id: data.guild_id,
-          recipients: [data.author ?? data.user ?? { id: data.user_id }],
-        },
-        this.client.channels,
-        id,
-        Partials.Channel,
-      )
+      this.getPayload({ ...data, ...payloadData }, this.client.channels, id, Partials.Channel)
     );
   }
 
@@ -64,6 +63,23 @@ class GenericAction {
         cache,
       )
     );
+  }
+
+  getPoll(data, message, channel) {
+    const includePollPartial = this.client.options.partials.includes(Partials.Poll);
+    const includePollAnswerPartial = this.client.options.partials.includes(Partials.PollAnswer);
+    if (message.partial && (!includePollPartial || !includePollAnswerPartial)) return null;
+
+    if (!message.poll && includePollPartial) {
+      message.poll = new Poll(this.client, data, message, channel);
+    }
+
+    if (message.poll && !message.poll.answers.has(data.answer_id) && includePollAnswerPartial) {
+      const pollAnswer = new PollAnswer(this.client, data, message.poll);
+      message.poll.answers.set(data.answer_id, pollAnswer);
+    }
+
+    return message.poll;
   }
 
   getReaction(data, message, user) {
@@ -114,6 +130,10 @@ class GenericAction {
   getThreadMember(id, manager) {
     return this.getPayload({ user_id: id }, manager, id, Partials.ThreadMember, false);
   }
+
+  spreadInjectedData(data) {
+    return Object.fromEntries(Object.getOwnPropertySymbols(data).map(symbol => [symbol, data[symbol]]));
+  }
 }
 
-module.exports = GenericAction;
+exports.Action = Action;

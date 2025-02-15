@@ -1,11 +1,11 @@
 'use strict';
 
-const { createEnum } = require('./Enums');
+const { createEnum } = require('./Enums.js');
 
 /**
  * The enumeration for partials.
  * ```js
- * const { Client, Partials } = require('discord.js');
+ * import { Client, Partials } from 'discord.js';
  *
  * const client = new Client({
  *   intents: [
@@ -26,6 +26,8 @@ const { createEnum } = require('./Enums');
  * @property {number} Reaction The partial to receive uncached reactions.
  * @property {number} GuildScheduledEvent The partial to receive uncached guild scheduled events.
  * @property {number} ThreadMember The partial to receive uncached thread members.
+ * @property {number} Poll The partial to receive uncached polls.
+ * @property {number} PollAnswer The partial to receive uncached poll answers.
  */
 
 // JSDoc for IntelliSense purposes
@@ -33,7 +35,7 @@ const { createEnum } = require('./Enums');
  * @type {Partials}
  * @ignore
  */
-module.exports = createEnum([
+exports.Partials = createEnum([
   'User',
   'Channel',
   'GuildMember',
@@ -41,4 +43,6 @@ module.exports = createEnum([
   'Reaction',
   'GuildScheduledEvent',
   'ThreadMember',
+  'Poll',
+  'PollAnswer',
 ]);

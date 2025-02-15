@@ -1,12 +1,12 @@
 'use strict';
 
 const { lazy } = require('@discordjs/util');
-const BaseInteraction = require('./BaseInteraction');
-const InteractionWebhook = require('./InteractionWebhook');
-const ModalSubmitFields = require('./ModalSubmitFields');
-const InteractionResponses = require('./interfaces/InteractionResponses');
+const { BaseInteraction } = require('./BaseInteraction.js');
+const { InteractionWebhook } = require('./InteractionWebhook.js');
+const { ModalSubmitFields } = require('./ModalSubmitFields.js');
+const { InteractionResponses } = require('./interfaces/InteractionResponses.js');
 
-const getMessage = lazy(() => require('./Message').Message);
+const getMessage = lazy(() => require('./Message.js').Message);
 
 /**
  * @typedef {Object} ModalData
@@ -49,7 +49,7 @@ class ModalSubmitInteraction extends BaseInteraction {
      * The components within the modal
      * @type {ActionRowModalData[]}
      */
-    this.components = data.data.components?.map(c => ModalSubmitInteraction.transformComponent(c));
+    this.components = data.data.components?.map(component => ModalSubmitInteraction.transformComponent(component));
 
     /**
      * The fields within the modal
@@ -88,12 +88,16 @@ class ModalSubmitInteraction extends BaseInteraction {
    * @returns {ModalData[]}
    */
   static transformComponent(rawComponent) {
-    return {
-      value: rawComponent.value,
-      type: rawComponent.type,
-      customId: rawComponent.custom_id,
-      components: rawComponent.components?.map(c => this.transformComponent(c)),
-    };
+    return rawComponent.components
+      ? {
+          type: rawComponent.type,
+          components: rawComponent.components.map(component => this.transformComponent(component)),
+        }
+      : {
+          value: rawComponent.value,
+          type: rawComponent.type,
+          customId: rawComponent.custom_id,
+        };
   }
 
   /**
@@ -118,4 +122,4 @@ class ModalSubmitInteraction extends BaseInteraction {
 
 InteractionResponses.applyToClass(ModalSubmitInteraction, 'showModal');
 
-module.exports = ModalSubmitInteraction;
+exports.ModalSubmitInteraction = ModalSubmitInteraction;

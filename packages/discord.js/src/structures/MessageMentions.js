@@ -2,7 +2,7 @@
 
 const { Collection } = require('@discordjs/collection');
 const { FormattingPatterns } = require('discord-api-types/v10');
-const { flatten } = require('../util/Util');
+const { flatten } = require('../util/Util.js');
 
 /**
  * Keeps track of mentions in a {@link Message}.
@@ -167,12 +167,12 @@ class MessageMentions {
         this.crosspostedChannels = new Collection(crosspostedChannels);
       } else {
         this.crosspostedChannels = new Collection();
-        for (const d of crosspostedChannels) {
-          this.crosspostedChannels.set(d.id, {
-            channelId: d.id,
-            guildId: d.guild_id,
-            type: d.type,
-            name: d.name,
+        for (const crosspostedChannel of crosspostedChannels) {
+          this.crosspostedChannels.set(crosspostedChannel.id, {
+            channelId: crosspostedChannel.id,
+            guildId: crosspostedChannel.guild_id,
+            type: crosspostedChannel.type,
+            name: crosspostedChannel.name,
           });
         }
       }
@@ -294,4 +294,4 @@ class MessageMentions {
   }
 }
 
-module.exports = MessageMentions;
+exports.MessageMentions = MessageMentions;

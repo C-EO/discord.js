@@ -1,7 +1,7 @@
 import { setTimeout as sleep } from 'node:timers/promises';
 import { Collection } from '@discordjs/collection';
 import { AsyncQueue } from '@sapphire/async-queue';
-import type { IIdentifyThrottler } from './IIdentifyThrottler';
+import type { IIdentifyThrottler } from './IIdentifyThrottler.js';
 
 /**
  * The state of a rate limit key's identify queue.
@@ -36,7 +36,7 @@ export class SimpleIdentifyThrottler implements IIdentifyThrottler {
 
 		try {
 			const diff = state.resetsAt - Date.now();
-			if (diff <= 5_000) {
+			if (diff > 0 && diff <= 5_000) {
 				// To account for the latency the IDENTIFY payload goes through, we add a bit more wait time
 				const time = diff + Math.random() * 1_500;
 				await sleep(time);

@@ -1,14 +1,14 @@
 'use strict';
 
-const { isJSONEncodable } = require('@discordjs/builders');
 const { Collection } = require('@discordjs/collection');
 const { makeURLSearchParams } = require('@discordjs/rest');
+const { isJSONEncodable } = require('@discordjs/util');
 const { Routes } = require('discord-api-types/v10');
-const ApplicationCommandPermissionsManager = require('./ApplicationCommandPermissionsManager');
-const CachedManager = require('./CachedManager');
-const { DiscordjsTypeError, ErrorCodes } = require('../errors');
-const ApplicationCommand = require('../structures/ApplicationCommand');
-const PermissionsBitField = require('../util/PermissionsBitField');
+const { ApplicationCommandPermissionsManager } = require('./ApplicationCommandPermissionsManager.js');
+const { CachedManager } = require('./CachedManager.js');
+const { DiscordjsTypeError, ErrorCodes } = require('../errors/index.js');
+const { ApplicationCommand } = require('../structures/ApplicationCommand.js');
+const { PermissionsBitField } = require('../util/PermissionsBitField.js');
 
 /**
  * Manages API methods for application commands and stores their cache.
@@ -81,15 +81,15 @@ class ApplicationCommandManager extends CachedManager {
   /**
    * Options used to fetch Application Commands from Discord
    * @typedef {BaseFetchOptions} FetchApplicationCommandOptions
+   * @property {Snowflake} [id] The command's id to fetch
    * @property {Snowflake} [guildId] The guild's id to fetch commands for, for when the guild is not cached
-   * @property {LocaleString} [locale] The locale to use when fetching this command
+   * @property {Locale} [locale] The locale to use when fetching this command
    * @property {boolean} [withLocalizations] Whether to fetch all localization data
    */
 
   /**
    * Obtains one or multiple application commands from Discord, or the cache if it's already available.
-   * @param {Snowflake} [id] The application command's id
-   * @param {FetchApplicationCommandOptions} [options] Additional options for this fetch
+   * @param {Snowflake|FetchApplicationCommandOptions} [options] Options for fetching application command(s)
    * @returns {Promise<ApplicationCommand|Collection<Snowflake, ApplicationCommand>>}
    * @example
    * // Fetch a single command
@@ -98,28 +98,50 @@ class ApplicationCommandManager extends CachedManager {
    *   .catch(console.error);
    * @example
    * // Fetch all commands
+   * client.application.commands.fetch()
+   *   .then(commands => console.log(`Fetched ${commands.size} commands`))
+   *   .catch(console.error);
+   * @example
+   * // Fetch all commands in a guild
    * guild.commands.fetch()
    *   .then(commands => console.log(`Fetched ${commands.size} commands`))
    *   .catch(console.error);
+   * @example
+   * // Fetch a single command without checking cache
+   * guild.commands.fetch({ id: '123456789012345678', force: true })
+   *   .then(command => console.log(`Fetched command ${command.name}`))
+   *   .catch(console.error)
    */
-  async fetch(id, { guildId, cache = true, force = false, locale, withLocalizations } = {}) {
-    if (typeof id === 'object') {
-      ({ guildId, cache = true, locale, withLocalizations } = id);
-    } else if (id) {
-      if (!force) {
-        const existing = this.cache.get(id);
-        if (existing) return existing;
-      }
-      const command = await this.client.rest.get(this.commandPath({ id, guildId }));
-      return this._add(command, cache);
+  async fetch(options) {
+    if (!options) return this._fetchMany();
+
+    if (typeof options === 'string') return this._fetchSingle({ id: options });
+
+    const { cache, force, guildId, id, locale, withLocalizations } = options;
+
+    if (id) return this._fetchSingle({ cache, force, guildId, id });
+
+    return this._fetchMany({ cache, guildId, locale, withLocalizations });
+  }
+
+  async _fetchSingle({ cache, force = false, guildId, id }) {
+    if (!force) {
+      const existing = this.cache.get(id);
+      if (existing) return existing;
     }
 
+    const command = await this.client.rest.get(this.commandPath({ id, guildId }));
+    return this._add(command, cache);
+  }
+
+  async _fetchMany({ cache, guildId, locale, withLocalizations } = {}) {
     const data = await this.client.rest.get(this.commandPath({ guildId }), {
       headers: {
         'X-Discord-Locale': locale,
       },
       query: makeURLSearchParams({ with_localizations: withLocalizations }),
     });
+
     return data.reduce((coll, command) => coll.set(command.id, this._add(command, cache, guildId)), new Collection());
   }
 
@@ -169,9 +191,12 @@ class ApplicationCommandManager extends CachedManager {
    */
   async set(commands, guildId) {
     const data = await this.client.rest.put(this.commandPath({ guildId }), {
-      body: commands.map(c => this.constructor.transformCommand(c)),
+      body: commands.map(command => this.constructor.transformCommand(command)),
     });
-    return data.reduce((coll, command) => coll.set(command.id, this._add(command, true, guildId)), new Collection());
+    return data.reduce(
+      (collection, command) => collection.set(command.id, this._add(command, true, guildId)),
+      new Collection(),
+    );
   }
 
   /**
@@ -253,11 +278,12 @@ class ApplicationCommandManager extends CachedManager {
       nsfw: command.nsfw,
       description_localizations: command.descriptionLocalizations ?? command.description_localizations,
       type: command.type,
-      options: command.options?.map(o => ApplicationCommand.transformOption(o)),
+      options: command.options?.map(option => ApplicationCommand.transformOption(option)),
       default_member_permissions,
-      dm_permission: command.dmPermission ?? command.dm_permission,
+      integration_types: command.integrationTypes ?? command.integration_types,
+      contexts: command.contexts,
     };
   }
 }
 
-module.exports = ApplicationCommandManager;
+exports.ApplicationCommandManager = ApplicationCommandManager;

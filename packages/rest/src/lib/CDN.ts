@@ -1,5 +1,4 @@
 /* eslint-disable jsdoc/check-param-names */
-import { URL } from 'node:url';
 import {
 	ALLOWED_EXTENSIONS,
 	ALLOWED_SIZES,
@@ -45,6 +44,12 @@ export interface MakeURLOptions {
 	 */
 	allowedExtensions?: readonly string[];
 	/**
+	 * The base URL.
+	 *
+	 * @defaultValue `DefaultRestOptions.cdn`
+	 */
+	base?: string;
+	/**
 	 * The extension to use for the image URL
 	 *
 	 * @defaultValue `'webp'`
@@ -60,7 +65,10 @@ export interface MakeURLOptions {
  * The CDN link builder
  */
 export class CDN {
-	public constructor(private readonly base: string = DefaultRestOptions.cdn) {}
+	public constructor(
+		private readonly cdn: string = DefaultRestOptions.cdn,
+		private readonly mediaProxy: string = DefaultRestOptions.mediaProxy,
+	) {}
 
 	/**
 	 * Generates an app asset URL for a client's asset.
@@ -96,6 +104,15 @@ export class CDN {
 	}
 
 	/**
+	 * Generates a user avatar decoration preset URL.
+	 *
+	 * @param asset - The avatar decoration hash
+	 */
+	public avatarDecoration(asset: string): string {
+		return this.makeURL(`/avatar-decoration-presets/${asset}`, { extension: 'png' });
+	}
+
+	/**
 	 * Generates a banner URL, e.g. for a user or a guild.
 	 *
 	 * @param id - The id that has the banner splash
@@ -118,12 +135,15 @@ export class CDN {
 	}
 
 	/**
-	 * Generates the default avatar URL for a discriminator.
+	 * Generates a default avatar URL
 	 *
-	 * @param discriminator - The discriminator modulo 5
+	 * @param index - The default avatar index
+	 * @remarks
+	 * To calculate the index for a user do `(userId >> 22) % 6`,
+	 * or `discriminator % 5` if they're using the legacy username system.
 	 */
-	public defaultAvatar(discriminator: number): string {
-		return this.makeURL(`/embed/avatars/${discriminator}`, { extension: 'png' });
+	public defaultAvatar(index: number): string {
+		return this.makeURL(`/embed/avatars/${index}`, { extension: 'png' });
 	}
 
 	/**
@@ -138,13 +158,14 @@ export class CDN {
 	}
 
 	/**
-	 * Generates an emoji's URL for an emoji.
+	 * Generates an emoji's URL.
 	 *
 	 * @param emojiId - The emoji id
-	 * @param extension - The extension of the emoji
+	 * @param animated - Whether the emoji is animated
+	 * @param options - Optional options for the emoji
 	 */
-	public emoji(emojiId: string, extension?: ImageExtension): string {
-		return this.makeURL(`/emojis/${emojiId}`, { extension });
+	public emoji(emojiId: string, animated: boolean, options?: Readonly<ImageURLOptions>): string {
+		return this.dynamicMakeURL(`/emojis/${emojiId}`, animated ? 'a_' : '', options);
 	}
 
 	/**
@@ -178,7 +199,7 @@ export class CDN {
 		bannerHash: string,
 		options?: Readonly<ImageURLOptions>,
 	): string {
-		return this.dynamicMakeURL(`/guilds/${guildId}/users/${userId}/banner`, bannerHash, options);
+		return this.dynamicMakeURL(`/guilds/${guildId}/users/${userId}/banners/${bannerHash}`, bannerHash, options);
 	}
 
 	/**
@@ -220,10 +241,15 @@ export class CDN {
 	 * @param stickerId - The sticker id
 	 * @param extension - The extension of the sticker
 	 * @privateRemarks
-	 * Stickers cannot have a `.webp` extension, so we default to a `.png`
+	 * Stickers cannot have a `.webp` extension, so we default to a `.png`.
+	 * Sticker GIFs do not use the CDN base URL.
 	 */
 	public sticker(stickerId: string, extension: StickerExtension = 'png'): string {
-		return this.makeURL(`/stickers/${stickerId}`, { allowedExtensions: ALLOWED_STICKER_EXTENSIONS, extension });
+		return this.makeURL(`/stickers/${stickerId}`, {
+			allowedExtensions: ALLOWED_STICKER_EXTENSIONS,
+			base: extension === 'gif' ? this.mediaProxy : this.cdn,
+			extension,
+		});
 	}
 
 	/**
@@ -285,7 +311,12 @@ export class CDN {
 	 */
 	private makeURL(
 		route: string,
-		{ allowedExtensions = ALLOWED_EXTENSIONS, extension = 'webp', size }: Readonly<MakeURLOptions> = {},
+		{
+			allowedExtensions = ALLOWED_EXTENSIONS,
+			base = this.cdn,
+			extension = 'webp',
+			size,
+		}: Readonly<MakeURLOptions> = {},
 	): string {
 		// eslint-disable-next-line no-param-reassign
 		extension = String(extension).toLowerCase();
@@ -298,7 +329,7 @@ export class CDN {
 			throw new RangeError(`Invalid size provided: ${size}\nMust be one of: ${ALLOWED_SIZES.join(', ')}`);
 		}
 
-		const url = new URL(`${this.base}${route}.${extension}`);
+		const url = new URL(`${base}${route}.${extension}`);
 
 		if (size) {
 			url.searchParams.set('size', String(size));

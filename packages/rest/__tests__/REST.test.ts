@@ -3,10 +3,10 @@ import { URLSearchParams } from 'node:url';
 import { DiscordSnowflake } from '@sapphire/snowflake';
 import type { Snowflake } from 'discord-api-types/v10';
 import { Routes } from 'discord-api-types/v10';
-import type { FormData } from 'undici';
+import { type FormData, fetch } from 'undici';
 import { File as UndiciFile, MockAgent, setGlobalDispatcher } from 'undici';
-import type { Interceptable, MockInterceptor } from 'undici/types/mock-interceptor';
-import { beforeEach, afterEach, test, expect } from 'vitest';
+import type { Interceptable, MockInterceptor } from 'undici/types/mock-interceptor.js';
+import { beforeEach, afterEach, test, expect, vitest } from 'vitest';
 import { REST } from '../src/index.js';
 import { genPath } from './util.js';
 
@@ -15,6 +15,10 @@ const File = NativeFile ?? UndiciFile;
 const newSnowflake: Snowflake = DiscordSnowflake.generate().toString();
 
 const api = new REST().setToken('A-Very-Fake-Token');
+
+const makeRequestMock = vitest.fn(fetch);
+
+const fetchApi = new REST({ makeRequest: makeRequestMock }).setToken('A-Very-Fake-Token');
 
 // @discordjs/rest uses the `content-type` header to detect whether to parse
 // the response as JSON or as an ArrayBuffer.
@@ -114,6 +118,22 @@ test('simple POST', async () => {
 	expect(await api.post('/simplePost')).toStrictEqual({ test: true });
 });
 
+test('simple POST with fetch', async () => {
+	mockPool
+		.intercept({
+			path: genPath('/fetchSimplePost'),
+			method: 'POST',
+		})
+		.reply(() => ({
+			data: { test: true },
+			statusCode: 200,
+			responseOptions,
+		}));
+
+	expect(await fetchApi.post('/fetchSimplePost')).toStrictEqual({ test: true });
+	expect(makeRequestMock).toHaveBeenCalledTimes(1);
+});
+
 test('simple PUT 2', async () => {
 	mockPool
 		.intercept({
@@ -159,12 +179,12 @@ test('getAuth', async () => {
 			path: genPath('/getAuth'),
 			method: 'GET',
 		})
-		.reply((from) => ({
-			data: { auth: (from.headers as unknown as Record<string, string | undefined>).Authorization ?? null },
-			statusCode: 200,
+		.reply(
+			200,
+			(from) => ({ auth: (from.headers as unknown as Record<string, string | undefined>).Authorization ?? null }),
 			responseOptions,
-		}))
-		.times(3);
+		)
+		.times(5);
 
 	// default
 	expect(await api.get('/getAuth')).toStrictEqual({ auth: 'Bot A-Very-Fake-Token' });
@@ -182,6 +202,20 @@ test('getAuth', async () => {
 			auth: true,
 		}),
 	).toStrictEqual({ auth: 'Bot A-Very-Fake-Token' });
+
+	// Custom Bot Auth
+	expect(
+		await api.get('/getAuth', {
+			auth: { token: 'A-Very-Different-Fake-Token' },
+		}),
+	).toStrictEqual({ auth: 'Bot A-Very-Different-Fake-Token' });
+
+	// Custom Bearer Auth
+	expect(
+		await api.get('/getAuth', {
+			auth: { token: 'A-Bearer-Fake-Token', prefix: 'Bearer' },
+		}),
+	).toStrictEqual({ auth: 'Bearer A-Bearer-Fake-Token' });
 });
 
 test('getReason', async () => {
@@ -190,11 +224,13 @@ test('getReason', async () => {
 			path: genPath('/getReason'),
 			method: 'GET',
 		})
-		.reply((from) => ({
-			data: { reason: (from.headers as unknown as Record<string, string | undefined>)['X-Audit-Log-Reason'] ?? null },
-			statusCode: 200,
+		.reply(
+			200,
+			(from) => ({
+				reason: (from.headers as unknown as Record<string, string | undefined>)['X-Audit-Log-Reason'] ?? null,
+			}),
 			responseOptions,
-		}))
+		)
 		.times(3);
 
 	// default

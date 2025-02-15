@@ -1,92 +1,115 @@
-import { makeURLSearchParams, type REST, type RawFile, type RequestData } from '@discordjs/rest';
-import { Routes } from 'discord-api-types/v10';
-import type {
-	RESTPatchAPIGuildVoiceStateCurrentMemberJSONBody,
-	RESTPatchAPIGuildVoiceStateCurrentMemberResult,
-	GuildMFALevel,
-	GuildWidgetStyle,
-	RESTGetAPIAuditLogQuery,
-	RESTGetAPIAuditLogResult,
-	RESTGetAPIAutoModerationRuleResult,
-	RESTGetAPIAutoModerationRulesResult,
-	RESTGetAPIGuildBansResult,
-	RESTGetAPIGuildChannelsResult,
-	RESTGetAPIGuildEmojiResult,
-	RESTGetAPIGuildEmojisResult,
-	RESTGetAPIGuildIntegrationsResult,
-	RESTGetAPIGuildInvitesResult,
-	RESTGetAPIGuildMemberResult,
-	RESTGetAPIGuildMembersResult,
-	RESTGetAPIGuildMembersQuery,
-	RESTGetAPIGuildMembersSearchResult,
-	RESTGetAPIGuildPreviewResult,
-	RESTGetAPIGuildPruneCountResult,
-	RESTGetAPIGuildResult,
-	RESTGetAPIGuildRolesResult,
-	RESTGetAPIGuildScheduledEventQuery,
-	RESTGetAPIGuildScheduledEventResult,
-	RESTGetAPIGuildScheduledEventsQuery,
-	RESTGetAPIGuildScheduledEventsResult,
-	RESTGetAPIGuildScheduledEventUsersQuery,
-	RESTGetAPIGuildScheduledEventUsersResult,
-	RESTGetAPIGuildStickerResult,
-	RESTGetAPIGuildStickersResult,
-	RESTGetAPIGuildTemplatesResult,
-	RESTGetAPIGuildThreadsResult,
-	RESTGetAPIGuildVanityUrlResult,
-	RESTGetAPIGuildVoiceRegionsResult,
-	RESTGetAPIGuildPruneCountQuery,
-	RESTPostAPIGuildStickerFormDataBody,
-	RESTPostAPIGuildStickerResult,
-	RESTGetAPIGuildMembersSearchQuery,
-	RESTGetAPIGuildWebhooksResult,
-	RESTGetAPIGuildWelcomeScreenResult,
-	RESTGetAPIGuildWidgetImageResult,
-	RESTGetAPIGuildWidgetJSONResult,
-	RESTGetAPITemplateResult,
-	RESTPatchAPIAutoModerationRuleJSONBody,
-	RESTPatchAPIGuildChannelPositionsJSONBody,
-	RESTPatchAPIGuildEmojiJSONBody,
-	RESTPatchAPIGuildEmojiResult,
-	RESTPatchAPIGuildJSONBody,
-	RESTPatchAPIGuildMemberJSONBody,
-	RESTPatchAPIGuildMemberResult,
-	RESTPatchAPIGuildResult,
-	RESTPatchAPIGuildRoleJSONBody,
-	RESTPatchAPIGuildRolePositionsJSONBody,
-	RESTPatchAPIGuildRolePositionsResult,
-	RESTPatchAPIGuildRoleResult,
-	RESTPatchAPIGuildScheduledEventJSONBody,
-	RESTPatchAPIGuildScheduledEventResult,
-	RESTPatchAPIGuildStickerJSONBody,
-	RESTPatchAPIGuildStickerResult,
-	RESTPatchAPIGuildTemplateJSONBody,
-	RESTPatchAPIGuildTemplateResult,
-	RESTPatchAPIGuildVoiceStateUserJSONBody,
-	RESTPatchAPIGuildWelcomeScreenJSONBody,
-	RESTPatchAPIGuildWelcomeScreenResult,
-	RESTPatchAPIGuildWidgetSettingsJSONBody,
-	RESTPatchAPIGuildWidgetSettingsResult,
-	RESTPostAPIAutoModerationRuleJSONBody,
-	RESTPostAPIAutoModerationRuleResult,
-	RESTPostAPIGuildChannelJSONBody,
-	RESTPostAPIGuildChannelResult,
-	RESTPostAPIGuildEmojiJSONBody,
-	RESTPostAPIGuildEmojiResult,
-	RESTPostAPIGuildPruneJSONBody,
-	RESTPostAPIGuildRoleJSONBody,
-	RESTPostAPIGuildRoleResult,
-	RESTPostAPIGuildScheduledEventJSONBody,
-	RESTPostAPIGuildScheduledEventResult,
-	RESTPostAPIGuildsJSONBody,
-	RESTPostAPIGuildsMFAResult,
-	RESTPostAPIGuildsResult,
-	RESTPostAPIGuildTemplatesResult,
-	RESTPostAPITemplateCreateGuildJSONBody,
-	RESTPutAPIGuildBanJSONBody,
-	RESTPutAPIGuildTemplateSyncResult,
-	Snowflake,
+/* eslint-disable jsdoc/check-param-names */
+
+import { makeURLSearchParams, type RawFile, type REST, type RequestData } from '@discordjs/rest';
+import {
+	Routes,
+	type GuildMFALevel,
+	type GuildWidgetStyle,
+	type RESTGetAPIAuditLogQuery,
+	type RESTGetAPIAuditLogResult,
+	type RESTGetAPIAutoModerationRuleResult,
+	type RESTGetAPIAutoModerationRulesResult,
+	type RESTGetAPIGuildBanResult,
+	type RESTGetAPIGuildBansQuery,
+	type RESTGetAPIGuildBansResult,
+	type RESTGetAPIGuildChannelsResult,
+	type RESTGetAPIGuildEmojiResult,
+	type RESTGetAPIGuildEmojisResult,
+	type RESTGetAPIGuildIntegrationsResult,
+	type RESTGetAPIGuildInvitesResult,
+	type RESTGetAPIGuildMemberResult,
+	type RESTGetAPIGuildMembersQuery,
+	type RESTGetAPIGuildMembersResult,
+	type RESTGetAPIGuildMembersSearchQuery,
+	type RESTGetAPIGuildMembersSearchResult,
+	type RESTGetAPIGuildOnboardingResult,
+	type RESTGetAPIGuildPreviewResult,
+	type RESTGetAPIGuildPruneCountQuery,
+	type RESTGetAPIGuildPruneCountResult,
+	type RESTGetAPIGuildQuery,
+	type RESTGetAPIGuildResult,
+	type RESTGetAPIGuildRoleResult,
+	type RESTGetAPIGuildRolesResult,
+	type RESTGetAPIGuildScheduledEventQuery,
+	type RESTGetAPIGuildScheduledEventResult,
+	type RESTGetAPIGuildScheduledEventUsersQuery,
+	type RESTGetAPIGuildScheduledEventUsersResult,
+	type RESTGetAPIGuildScheduledEventsQuery,
+	type RESTGetAPIGuildScheduledEventsResult,
+	type RESTGetAPIGuildStickerResult,
+	type RESTGetAPIGuildStickersResult,
+	type RESTGetAPIGuildTemplatesResult,
+	type RESTGetAPIGuildThreadsResult,
+	type RESTGetAPIGuildVanityUrlResult,
+	type RESTGetAPIGuildVoiceRegionsResult,
+	type RESTGetAPIGuildWebhooksResult,
+	type RESTGetAPIGuildWelcomeScreenResult,
+	type RESTGetAPIGuildWidgetImageResult,
+	type RESTGetAPIGuildWidgetJSONResult,
+	type RESTGetAPIGuildWidgetSettingsResult,
+	type RESTGetAPITemplateResult,
+	type RESTPatchAPIAutoModerationRuleJSONBody,
+	type RESTPatchAPIAutoModerationRuleResult,
+	type RESTPatchAPIGuildChannelPositionsJSONBody,
+	type RESTPatchAPIGuildEmojiJSONBody,
+	type RESTPatchAPIGuildEmojiResult,
+	type RESTPatchAPIGuildJSONBody,
+	type RESTPatchAPIGuildMemberJSONBody,
+	type RESTPatchAPIGuildMemberResult,
+	type RESTPatchAPIGuildResult,
+	type RESTPatchAPIGuildRoleJSONBody,
+	type RESTPatchAPIGuildRolePositionsJSONBody,
+	type RESTPatchAPIGuildRolePositionsResult,
+	type RESTPatchAPIGuildRoleResult,
+	type RESTPatchAPIGuildScheduledEventJSONBody,
+	type RESTPatchAPIGuildScheduledEventResult,
+	type RESTPatchAPIGuildStickerJSONBody,
+	type RESTPatchAPIGuildStickerResult,
+	type RESTPatchAPIGuildTemplateJSONBody,
+	type RESTPatchAPIGuildTemplateResult,
+	type RESTPatchAPIGuildWelcomeScreenJSONBody,
+	type RESTPatchAPIGuildWelcomeScreenResult,
+	type RESTPatchAPIGuildWidgetSettingsJSONBody,
+	type RESTPatchAPIGuildWidgetSettingsResult,
+	type RESTPostAPIAutoModerationRuleJSONBody,
+	type RESTPostAPIAutoModerationRuleResult,
+	type RESTPostAPIGuildBulkBanJSONBody,
+	type RESTPostAPIGuildBulkBanResult,
+	type RESTPostAPIGuildChannelJSONBody,
+	type RESTPostAPIGuildChannelResult,
+	type RESTPostAPIGuildEmojiJSONBody,
+	type RESTPostAPIGuildEmojiResult,
+	type RESTPostAPIGuildPruneJSONBody,
+	type RESTPostAPIGuildPruneResult,
+	type RESTPostAPIGuildRoleJSONBody,
+	type RESTPostAPIGuildRoleResult,
+	type RESTPostAPIGuildScheduledEventJSONBody,
+	type RESTPostAPIGuildScheduledEventResult,
+	type RESTPostAPIGuildStickerFormDataBody,
+	type RESTPostAPIGuildStickerResult,
+	type RESTPostAPIGuildTemplatesJSONBody,
+	type RESTPostAPIGuildTemplatesResult,
+	type RESTPostAPIGuildsJSONBody,
+	type RESTPostAPIGuildsMFAResult,
+	type RESTPostAPIGuildsResult,
+	type RESTPutAPIGuildBanJSONBody,
+	type RESTPutAPIGuildMemberJSONBody,
+	type RESTPutAPIGuildMemberResult,
+	type RESTPutAPIGuildOnboardingJSONBody,
+	type RESTPutAPIGuildOnboardingResult,
+	type RESTPutAPIGuildTemplateSyncResult,
+	type RESTGetAPIGuildSoundboardSoundResult,
+	type RESTGetAPIGuildSoundboardSoundsResult,
+	type RESTPatchAPIGuildSoundboardSoundJSONBody,
+	type RESTPatchAPIGuildSoundboardSoundResult,
+	type RESTPostAPIGuildSoundboardSoundJSONBody,
+	type RESTPostAPIGuildSoundboardSoundResult,
+	type Snowflake,
 } from 'discord-api-types/v10';
+
+export interface CreateStickerOptions extends Omit<RESTPostAPIGuildStickerFormDataBody, 'file'> {
+	file: RawFile;
+}
 
 export class GuildsAPI {
 	public constructor(private readonly rest: REST) {}
@@ -96,10 +119,19 @@ export class GuildsAPI {
 	 *
 	 * @see {@link https://discord.com/developers/docs/resources/guild#get-guild}
 	 * @param guildId - The id of the guild
+	 * @param query - The query options for fetching the guild
 	 * @param options - The options for fetching the guild
 	 */
-	public async get(guildId: string, { signal }: Pick<RequestData, 'signal'> = {}) {
-		return this.rest.get(Routes.guild(guildId), { signal }) as Promise<RESTGetAPIGuildResult>;
+	public async get(
+		guildId: Snowflake,
+		query: RESTGetAPIGuildQuery = {},
+		{ auth, signal }: Pick<RequestData, 'auth' | 'signal'> = {},
+	) {
+		return this.rest.get(Routes.guild(guildId), {
+			auth,
+			query: makeURLSearchParams(query),
+			signal,
+		}) as Promise<RESTGetAPIGuildResult>;
 	}
 
 	/**
@@ -109,8 +141,9 @@ export class GuildsAPI {
 	 * @param guildId - The id of the guild to fetch the preview from
 	 * @param options - The options for fetching the guild preview
 	 */
-	public async getPreview(guildId: Snowflake, { signal }: Pick<RequestData, 'signal'> = {}) {
+	public async getPreview(guildId: Snowflake, { auth, signal }: Pick<RequestData, 'auth' | 'signal'> = {}) {
 		return this.rest.get(Routes.guildPreview(guildId), {
+			auth,
 			signal,
 		}) as Promise<RESTGetAPIGuildPreviewResult>;
 	}
@@ -122,8 +155,8 @@ export class GuildsAPI {
 	 * @param body - The guild to create
 	 * @param options - The options for creating the guild
 	 */
-	public async create(body: RESTPostAPIGuildsJSONBody, { signal }: Pick<RequestData, 'signal'> = {}) {
-		return this.rest.post(Routes.guilds(), { body, signal }) as Promise<RESTPostAPIGuildsResult>;
+	public async create(body: RESTPostAPIGuildsJSONBody, { auth, signal }: Pick<RequestData, 'auth' | 'signal'> = {}) {
+		return this.rest.post(Routes.guilds(), { auth, body, signal }) as Promise<RESTPostAPIGuildsResult>;
 	}
 
 	/**
@@ -137,9 +170,10 @@ export class GuildsAPI {
 	public async edit(
 		guildId: Snowflake,
 		body: RESTPatchAPIGuildJSONBody,
-		{ reason, signal }: Pick<RequestData, 'reason' | 'signal'> = {},
+		{ auth, reason, signal }: Pick<RequestData, 'auth' | 'reason' | 'signal'> = {},
 	) {
 		return this.rest.patch(Routes.guild(guildId), {
+			auth,
 			reason,
 			body,
 			signal,
@@ -153,24 +187,50 @@ export class GuildsAPI {
 	 * @param guildId - The id of the guild to delete
 	 * @param options - The options for deleting this guild
 	 */
-	public async delete(guildId: Snowflake, { signal, reason }: Pick<RequestData, 'reason' | 'signal'> = {}) {
-		await this.rest.delete(Routes.guild(guildId), { reason, signal });
+	public async delete(
+		guildId: Snowflake,
+		{ auth, reason, signal }: Pick<RequestData, 'auth' | 'reason' | 'signal'> = {},
+	) {
+		await this.rest.delete(Routes.guild(guildId), { auth, reason, signal });
 	}
 
 	/**
-	 * Fetches all the members of a guild
+	 * Adds user to the guild
+	 *
+	 * @see {@link https://discord.com/developers/docs/resources/guild#add-guild-member}
+	 * @param guildId - The id of the guild to add the user to
+	 * @param userId - The id of the user to add
+	 * @param body - The data for adding users to the guild
+	 * @param options - The options for adding users to the guild
+	 */
+	public async addMember(
+		guildId: Snowflake,
+		userId: Snowflake,
+		body: RESTPutAPIGuildMemberJSONBody,
+		{ auth, signal }: Pick<RequestData, 'auth' | 'signal'> = {},
+	) {
+		return this.rest.put(Routes.guildMember(guildId, userId), {
+			auth,
+			body,
+			signal,
+		}) as Promise<RESTPutAPIGuildMemberResult>;
+	}
+
+	/**
+	 * Fetches members of a guild.
 	 *
 	 * @see {@link https://discord.com/developers/docs/resources/guild#list-guild-members}
 	 * @param guildId - The id of the guild
-	 * @param query - The query to use when fetching the guild members
+	 * @param query - The query for fetching the guild members
 	 * @param options - The options for fetching the guild members
 	 */
 	public async getMembers(
 		guildId: Snowflake,
 		query: RESTGetAPIGuildMembersQuery = {},
-		{ signal }: Pick<RequestData, 'signal'> = {},
+		{ auth, signal }: Pick<RequestData, 'auth' | 'signal'> = {},
 	) {
 		return this.rest.get(Routes.guildMembers(guildId), {
+			auth,
 			query: makeURLSearchParams(query),
 			signal,
 		}) as Promise<RESTGetAPIGuildMembersResult>;
@@ -183,8 +243,9 @@ export class GuildsAPI {
 	 * @param guildId - The id of the guild to fetch the channels from
 	 * @param options - The options for fetching the guild channels
 	 */
-	public async getChannels(guildId: Snowflake, { signal }: Pick<RequestData, 'signal'> = {}) {
+	public async getChannels(guildId: Snowflake, { auth, signal }: Pick<RequestData, 'auth' | 'signal'> = {}) {
 		return this.rest.get(Routes.guildChannels(guildId), {
+			auth,
 			signal,
 		}) as Promise<RESTGetAPIGuildChannelsResult>;
 	}
@@ -200,9 +261,10 @@ export class GuildsAPI {
 	public async createChannel(
 		guildId: Snowflake,
 		body: RESTPostAPIGuildChannelJSONBody,
-		{ reason, signal }: Pick<RequestData, 'reason' | 'signal'> = {},
+		{ auth, reason, signal }: Pick<RequestData, 'auth' | 'reason' | 'signal'> = {},
 	) {
 		return this.rest.post(Routes.guildChannels(guildId), {
+			auth,
 			reason,
 			body,
 			signal,
@@ -220,9 +282,9 @@ export class GuildsAPI {
 	public async setChannelPositions(
 		guildId: Snowflake,
 		body: RESTPatchAPIGuildChannelPositionsJSONBody,
-		{ reason, signal }: Pick<RequestData, 'reason' | 'signal'> = {},
+		{ auth, reason, signal }: Pick<RequestData, 'auth' | 'reason' | 'signal'> = {},
 	) {
-		await this.rest.patch(Routes.guildChannels(guildId), { reason, body, signal });
+		await this.rest.patch(Routes.guildChannels(guildId), { auth, reason, body, signal });
 	}
 
 	/**
@@ -232,19 +294,44 @@ export class GuildsAPI {
 	 * @param guildId - The id of the guild to fetch the active threads from
 	 * @param options - The options for fetching the active threads
 	 */
-	public async getActiveThreads(guildId: Snowflake, { signal }: Pick<RequestData, 'signal'> = {}) {
-		return this.rest.get(Routes.guildActiveThreads(guildId), { signal }) as Promise<RESTGetAPIGuildThreadsResult>;
+	public async getActiveThreads(guildId: Snowflake, { auth, signal }: Pick<RequestData, 'auth' | 'signal'> = {}) {
+		return this.rest.get(Routes.guildActiveThreads(guildId), { auth, signal }) as Promise<RESTGetAPIGuildThreadsResult>;
 	}
 
 	/**
 	 * Fetches a guild member ban
 	 *
-	 * @see {@link https://discord.com/developers/docs/resources/guild#get-guild-bans}
+	 * @see {@link https://discord.com/developers/docs/resources/guild#get-guild-ban}
 	 * @param guildId - The id of the guild to fetch the ban from
-	 * @param options - The options for fetching the guild member ban
+	 * @param userId - The id of the user to fetch the ban
+	 * @param options - The options for fetching the ban
 	 */
-	public async getMemberBans(guildId: Snowflake, { signal }: Pick<RequestData, 'signal'> = {}) {
-		return this.rest.get(Routes.guildBans(guildId), { signal }) as Promise<RESTGetAPIGuildBansResult>;
+	public async getMemberBan(
+		guildId: Snowflake,
+		userId: Snowflake,
+		{ auth, signal }: Pick<RequestData, 'auth' | 'signal'> = {},
+	) {
+		return this.rest.get(Routes.guildBan(guildId, userId), { auth, signal }) as Promise<RESTGetAPIGuildBanResult>;
+	}
+
+	/**
+	 * Fetches guild member bans
+	 *
+	 * @see {@link https://discord.com/developers/docs/resources/guild#get-guild-bans}
+	 * @param guildId - The id of the guild to fetch the bans from
+	 * @param query - The query options for fetching the bans
+	 * @param options - The options for fetching the bans
+	 */
+	public async getMemberBans(
+		guildId: Snowflake,
+		query: RESTGetAPIGuildBansQuery = {},
+		{ auth, signal }: Pick<RequestData, 'auth' | 'signal'> = {},
+	) {
+		return this.rest.get(Routes.guildBans(guildId), {
+			auth,
+			query: makeURLSearchParams(query),
+			signal,
+		}) as Promise<RESTGetAPIGuildBansResult>;
 	}
 
 	/**
@@ -260,9 +347,9 @@ export class GuildsAPI {
 		guildId: Snowflake,
 		userId: Snowflake,
 		body: RESTPutAPIGuildBanJSONBody = {},
-		{ reason, signal }: Pick<RequestData, 'reason' | 'signal'> = {},
+		{ auth, reason, signal }: Pick<RequestData, 'auth' | 'reason' | 'signal'> = {},
 	) {
-		await this.rest.put(Routes.guildBan(guildId, userId), { reason, body, signal });
+		await this.rest.put(Routes.guildBan(guildId, userId), { auth, reason, body, signal });
 	}
 
 	/**
@@ -276,9 +363,30 @@ export class GuildsAPI {
 	public async unbanUser(
 		guildId: Snowflake,
 		userId: Snowflake,
-		{ reason, signal }: Pick<RequestData, 'reason' | 'signal'> = {},
+		{ auth, reason, signal }: Pick<RequestData, 'auth' | 'reason' | 'signal'> = {},
 	) {
-		await this.rest.delete(Routes.guildBan(guildId, userId), { reason, signal });
+		await this.rest.delete(Routes.guildBan(guildId, userId), { auth, reason, signal });
+	}
+
+	/**
+	 * Bulk ban users from a guild
+	 *
+	 * @see {@link https://discord.com/developers/docs/resources/guild#bulk-guild-ban}
+	 * @param guildId - The id of the guild to bulk ban users in
+	 * @param body - The data for bulk banning users
+	 * @param options - The options for bulk banning users
+	 */
+	public async bulkBanUsers(
+		guildId: Snowflake,
+		body: RESTPostAPIGuildBulkBanJSONBody,
+		{ auth, reason, signal }: Pick<RequestData, 'auth' | 'reason' | 'signal'> = {},
+	) {
+		return this.rest.post(Routes.guildBulkBan(guildId), {
+			auth,
+			reason,
+			body,
+			signal,
+		}) as Promise<RESTPostAPIGuildBulkBanResult>;
 	}
 
 	/**
@@ -288,8 +396,24 @@ export class GuildsAPI {
 	 * @param guildId - The id of the guild to fetch the roles from
 	 * @param options - The options for fetching the guild roles
 	 */
-	public async getRoles(guildId: Snowflake, { signal }: Pick<RequestData, 'signal'> = {}) {
-		return this.rest.get(Routes.guildRoles(guildId), { signal }) as Promise<RESTGetAPIGuildRolesResult>;
+	public async getRoles(guildId: Snowflake, { auth, signal }: Pick<RequestData, 'auth' | 'signal'> = {}) {
+		return this.rest.get(Routes.guildRoles(guildId), { auth, signal }) as Promise<RESTGetAPIGuildRolesResult>;
+	}
+
+	/**
+	 * Get a role in a guild
+	 *
+	 * @see {@link https://discord.com/developers/docs/resources/guild#get-guild-role}
+	 * @param guildId - The id of the guild to fetch the role from
+	 * @param roleId - The id of the role to fetch
+	 * @param options - The options for fetching the guild role
+	 */
+	public async getRole(
+		guildId: Snowflake,
+		roleId: Snowflake,
+		{ auth, signal }: Pick<RequestData, 'auth' | 'signal'> = {},
+	) {
+		return this.rest.get(Routes.guildRole(guildId, roleId), { auth, signal }) as Promise<RESTGetAPIGuildRoleResult>;
 	}
 
 	/**
@@ -303,9 +427,14 @@ export class GuildsAPI {
 	public async createRole(
 		guildId: Snowflake,
 		body: RESTPostAPIGuildRoleJSONBody,
-		{ reason, signal }: Pick<RequestData, 'reason' | 'signal'> = {},
+		{ auth, reason, signal }: Pick<RequestData, 'auth' | 'reason' | 'signal'> = {},
 	) {
-		return this.rest.post(Routes.guildRoles(guildId), { reason, body, signal }) as Promise<RESTPostAPIGuildRoleResult>;
+		return this.rest.post(Routes.guildRoles(guildId), {
+			auth,
+			reason,
+			body,
+			signal,
+		}) as Promise<RESTPostAPIGuildRoleResult>;
 	}
 
 	/**
@@ -319,9 +448,10 @@ export class GuildsAPI {
 	public async setRolePositions(
 		guildId: Snowflake,
 		body: RESTPatchAPIGuildRolePositionsJSONBody,
-		{ reason, signal }: Pick<RequestData, 'reason' | 'signal'> = {},
+		{ auth, reason, signal }: Pick<RequestData, 'auth' | 'reason' | 'signal'> = {},
 	) {
 		return this.rest.patch(Routes.guildRoles(guildId), {
+			auth,
 			reason,
 			body,
 			signal,
@@ -341,9 +471,10 @@ export class GuildsAPI {
 		guildId: Snowflake,
 		roleId: Snowflake,
 		body: RESTPatchAPIGuildRoleJSONBody,
-		{ reason, signal }: Pick<RequestData, 'reason' | 'signal'> = {},
+		{ auth, reason, signal }: Pick<RequestData, 'auth' | 'reason' | 'signal'> = {},
 	) {
 		return this.rest.patch(Routes.guildRole(guildId, roleId), {
+			auth,
 			reason,
 			body,
 			signal,
@@ -361,9 +492,9 @@ export class GuildsAPI {
 	public async deleteRole(
 		guildId: Snowflake,
 		roleId: Snowflake,
-		{ reason, signal }: Pick<RequestData, 'reason' | 'signal'> = {},
+		{ auth, reason, signal }: Pick<RequestData, 'auth' | 'reason' | 'signal'> = {},
 	) {
-		await this.rest.delete(Routes.guildRole(guildId, roleId), { reason, signal });
+		await this.rest.delete(Routes.guildRole(guildId, roleId), { auth, reason, signal });
 	}
 
 	/**
@@ -377,12 +508,13 @@ export class GuildsAPI {
 	public async editMFALevel(
 		guildId: Snowflake,
 		level: GuildMFALevel,
-		{ reason, signal }: Pick<RequestData, 'reason' | 'signal'> = {},
+		{ auth, reason, signal }: Pick<RequestData, 'auth' | 'reason' | 'signal'> = {},
 	) {
 		return this.rest.post(Routes.guildMFA(guildId), {
+			auth,
 			reason,
 			signal,
-			body: { mfa_level: level },
+			body: { level },
 		}) as Promise<RESTPostAPIGuildsMFAResult>;
 	}
 
@@ -397,9 +529,10 @@ export class GuildsAPI {
 	public async getPruneCount(
 		guildId: Snowflake,
 		query: RESTGetAPIGuildPruneCountQuery = {},
-		{ signal }: Pick<RequestData, 'signal'> = {},
+		{ auth, signal }: Pick<RequestData, 'auth' | 'signal'> = {},
 	) {
 		return this.rest.get(Routes.guildPrune(guildId), {
+			auth,
 			signal,
 			query: makeURLSearchParams(query),
 		}) as Promise<RESTGetAPIGuildPruneCountResult>;
@@ -416,13 +549,14 @@ export class GuildsAPI {
 	public async beginPrune(
 		guildId: Snowflake,
 		body: RESTPostAPIGuildPruneJSONBody = {},
-		{ reason, signal }: Pick<RequestData, 'reason' | 'signal'> = {},
+		{ auth, reason, signal }: Pick<RequestData, 'auth' | 'reason' | 'signal'> = {},
 	) {
 		return this.rest.post(Routes.guildPrune(guildId), {
+			auth,
 			body,
 			reason,
 			signal,
-		}) as Promise<RESTGetAPIGuildPruneCountResult>;
+		}) as Promise<RESTPostAPIGuildPruneResult>;
 	}
 
 	/**
@@ -432,8 +566,11 @@ export class GuildsAPI {
 	 * @param guildId - The id of the guild to fetch the voice regions from
 	 * @param options - The options for fetching the voice regions
 	 */
-	public async getVoiceRegions(guildId: Snowflake, { signal }: Pick<RequestData, 'signal'> = {}) {
-		return this.rest.get(Routes.guildVoiceRegions(guildId), { signal }) as Promise<RESTGetAPIGuildVoiceRegionsResult>;
+	public async getVoiceRegions(guildId: Snowflake, { auth, signal }: Pick<RequestData, 'auth' | 'signal'> = {}) {
+		return this.rest.get(Routes.guildVoiceRegions(guildId), {
+			auth,
+			signal,
+		}) as Promise<RESTGetAPIGuildVoiceRegionsResult>;
 	}
 
 	/**
@@ -443,8 +580,8 @@ export class GuildsAPI {
 	 * @param guildId - The id of the guild to fetch the invites from
 	 * @param options - The options for fetching the invites
 	 */
-	public async getInvites(guildId: Snowflake, { signal }: Pick<RequestData, 'signal'> = {}) {
-		return this.rest.get(Routes.guildInvites(guildId), { signal }) as Promise<RESTGetAPIGuildInvitesResult>;
+	public async getInvites(guildId: Snowflake, { auth, signal }: Pick<RequestData, 'auth' | 'signal'> = {}) {
+		return this.rest.get(Routes.guildInvites(guildId), { auth, signal }) as Promise<RESTGetAPIGuildInvitesResult>;
 	}
 
 	/**
@@ -454,8 +591,11 @@ export class GuildsAPI {
 	 * @param guildId - The id of the guild to fetch the integrations from
 	 * @param options - The options for fetching the integrations
 	 */
-	public async getIntegrations(guildId: Snowflake, { signal }: Pick<RequestData, 'signal'> = {}) {
-		return this.rest.get(Routes.guildIntegrations(guildId), { signal }) as Promise<RESTGetAPIGuildIntegrationsResult>;
+	public async getIntegrations(guildId: Snowflake, { auth, signal }: Pick<RequestData, 'auth' | 'signal'> = {}) {
+		return this.rest.get(Routes.guildIntegrations(guildId), {
+			auth,
+			signal,
+		}) as Promise<RESTGetAPIGuildIntegrationsResult>;
 	}
 
 	/**
@@ -469,9 +609,9 @@ export class GuildsAPI {
 	public async deleteIntegration(
 		guildId: Snowflake,
 		integrationId: Snowflake,
-		{ reason, signal }: Pick<RequestData, 'reason' | 'signal'> = {},
+		{ auth, reason, signal }: Pick<RequestData, 'auth' | 'reason' | 'signal'> = {},
 	) {
-		await this.rest.delete(Routes.guildIntegration(guildId, integrationId), { reason, signal });
+		await this.rest.delete(Routes.guildIntegration(guildId, integrationId), { auth, reason, signal });
 	}
 
 	/**
@@ -481,8 +621,11 @@ export class GuildsAPI {
 	 * @param guildId - The id of the guild to fetch the widget settings from
 	 * @param options - The options for fetching the widget settings
 	 */
-	public async getWidgetSettings(guildId: Snowflake, { signal }: Pick<RequestData, 'signal'> = {}) {
-		return this.rest.get(Routes.guildWidgetSettings(guildId), { signal }) as Promise<RESTGetAPIGuildWidgetImageResult>;
+	public async getWidgetSettings(guildId: Snowflake, { auth, signal }: Pick<RequestData, 'auth' | 'signal'> = {}) {
+		return this.rest.get(Routes.guildWidgetSettings(guildId), {
+			auth,
+			signal,
+		}) as Promise<RESTGetAPIGuildWidgetSettingsResult>;
 	}
 
 	/**
@@ -496,9 +639,10 @@ export class GuildsAPI {
 	public async editWidgetSettings(
 		guildId: Snowflake,
 		body: RESTPatchAPIGuildWidgetSettingsJSONBody,
-		{ reason, signal }: Pick<RequestData, 'reason' | 'signal'> = {},
+		{ auth, reason, signal }: Pick<RequestData, 'auth' | 'reason' | 'signal'> = {},
 	) {
 		return this.rest.patch(Routes.guildWidgetSettings(guildId), {
+			auth,
 			reason,
 			body,
 			signal,
@@ -512,8 +656,8 @@ export class GuildsAPI {
 	 * @param guildId - The id of the guild to fetch the widget from
 	 * @param options - The options for fetching the widget
 	 */
-	public async getWidget(guildId: Snowflake, { signal }: Pick<RequestData, 'signal'> = {}) {
-		return this.rest.get(Routes.guildWidgetJSON(guildId), { signal }) as Promise<RESTGetAPIGuildWidgetJSONResult>;
+	public async getWidget(guildId: Snowflake, { auth, signal }: Pick<RequestData, 'auth' | 'signal'> = {}) {
+		return this.rest.get(Routes.guildWidgetJSON(guildId), { auth, signal }) as Promise<RESTGetAPIGuildWidgetJSONResult>;
 	}
 
 	/**
@@ -523,8 +667,8 @@ export class GuildsAPI {
 	 * @param guildId - The id of the guild to fetch the vanity url from
 	 * @param options - The options for fetching the vanity url
 	 */
-	public async getVanityURL(guildId: Snowflake, { signal }: Pick<RequestData, 'signal'> = {}) {
-		return this.rest.get(Routes.guildVanityUrl(guildId), { signal }) as Promise<RESTGetAPIGuildVanityUrlResult>;
+	public async getVanityURL(guildId: Snowflake, { auth, signal }: Pick<RequestData, 'auth' | 'signal'> = {}) {
+		return this.rest.get(Routes.guildVanityUrl(guildId), { auth, signal }) as Promise<RESTGetAPIGuildVanityUrlResult>;
 	}
 
 	/**
@@ -538,9 +682,10 @@ export class GuildsAPI {
 	public async getWidgetImage(
 		guildId: Snowflake,
 		style?: GuildWidgetStyle,
-		{ signal }: Pick<RequestData, 'signal'> = {},
+		{ auth, signal }: Pick<RequestData, 'auth' | 'signal'> = {},
 	) {
 		return this.rest.get(Routes.guildWidgetImage(guildId), {
+			auth,
 			query: makeURLSearchParams({ style }),
 			signal,
 		}) as Promise<RESTGetAPIGuildWidgetImageResult>;
@@ -553,8 +698,11 @@ export class GuildsAPI {
 	 * @param guildId - The id of the guild to fetch the welcome screen from
 	 * @param options - The options for fetching the welcome screen
 	 */
-	public async getWelcomeScreen(guildId: Snowflake, { signal }: Pick<RequestData, 'signal'> = {}) {
-		return this.rest.get(Routes.guildWelcomeScreen(guildId), { signal }) as Promise<RESTGetAPIGuildWelcomeScreenResult>;
+	public async getWelcomeScreen(guildId: Snowflake, { auth, signal }: Pick<RequestData, 'auth' | 'signal'> = {}) {
+		return this.rest.get(Routes.guildWelcomeScreen(guildId), {
+			auth,
+			signal,
+		}) as Promise<RESTGetAPIGuildWelcomeScreenResult>;
 	}
 
 	/**
@@ -568,31 +716,14 @@ export class GuildsAPI {
 	public async editWelcomeScreen(
 		guildId: Snowflake,
 		body?: RESTPatchAPIGuildWelcomeScreenJSONBody,
-		{ reason, signal }: Pick<RequestData, 'reason' | 'signal'> = {},
+		{ auth, reason, signal }: Pick<RequestData, 'auth' | 'reason' | 'signal'> = {},
 	) {
 		return this.rest.patch(Routes.guildWelcomeScreen(guildId), {
+			auth,
 			reason,
 			body,
 			signal,
 		}) as Promise<RESTPatchAPIGuildWelcomeScreenResult>;
-	}
-
-	/**
-	 * Edits a user's voice state in a guild
-	 *
-	 * @see {@link https://discord.com/developers/docs/resources/guild#modify-user-voice-state}
-	 * @param guildId - The id of the guild to edit the current user's voice state in
-	 * @param userId - The id of the user to edit the voice state for
-	 * @param body - The data for editing the voice state
-	 * @param options - The options for editing the voice state
-	 */
-	public async editUserVoiceState(
-		guildId: Snowflake,
-		userId: Snowflake,
-		body: RESTPatchAPIGuildVoiceStateUserJSONBody,
-		{ reason, signal }: Pick<RequestData, 'reason' | 'signal'> = {},
-	) {
-		await this.rest.patch(Routes.guildVoiceState(guildId, userId), { reason, body, signal });
 	}
 
 	/**
@@ -602,8 +733,8 @@ export class GuildsAPI {
 	 * @param guildId - The id of the guild to fetch the emojis from
 	 * @param options - The options for fetching the emojis
 	 */
-	public async getEmojis(guildId: Snowflake, { signal }: Pick<RequestData, 'signal'> = {}) {
-		return this.rest.get(Routes.guildEmojis(guildId), { signal }) as Promise<RESTGetAPIGuildEmojisResult>;
+	public async getEmojis(guildId: Snowflake, { auth, signal }: Pick<RequestData, 'auth' | 'signal'> = {}) {
+		return this.rest.get(Routes.guildEmojis(guildId), { auth, signal }) as Promise<RESTGetAPIGuildEmojisResult>;
 	}
 
 	/**
@@ -614,8 +745,12 @@ export class GuildsAPI {
 	 * @param emojiId - The id of the emoji to fetch
 	 * @param options - The options for fetching the emoji
 	 */
-	public async getEmoji(guildId: Snowflake, emojiId: Snowflake, { signal }: Pick<RequestData, 'signal'> = {}) {
-		return this.rest.get(Routes.guildEmoji(guildId, emojiId), { signal }) as Promise<RESTGetAPIGuildEmojiResult>;
+	public async getEmoji(
+		guildId: Snowflake,
+		emojiId: Snowflake,
+		{ auth, signal }: Pick<RequestData, 'auth' | 'signal'> = {},
+	) {
+		return this.rest.get(Routes.guildEmoji(guildId, emojiId), { auth, signal }) as Promise<RESTGetAPIGuildEmojiResult>;
 	}
 
 	/**
@@ -629,9 +764,10 @@ export class GuildsAPI {
 	public async createEmoji(
 		guildId: Snowflake,
 		body: RESTPostAPIGuildEmojiJSONBody,
-		{ reason, signal }: Pick<RequestData, 'reason' | 'signal'> = {},
+		{ auth, reason, signal }: Pick<RequestData, 'auth' | 'reason' | 'signal'> = {},
 	) {
 		return this.rest.post(Routes.guildEmojis(guildId), {
+			auth,
 			reason,
 			body,
 			signal,
@@ -651,9 +787,10 @@ export class GuildsAPI {
 		guildId: Snowflake,
 		emojiId: Snowflake,
 		body: RESTPatchAPIGuildEmojiJSONBody,
-		{ reason, signal }: Pick<RequestData, 'reason' | 'signal'> = {},
+		{ auth, reason, signal }: Pick<RequestData, 'auth' | 'reason' | 'signal'> = {},
 	) {
 		return this.rest.patch(Routes.guildEmoji(guildId, emojiId), {
+			auth,
 			reason,
 			body,
 			signal,
@@ -671,9 +808,9 @@ export class GuildsAPI {
 	public async deleteEmoji(
 		guildId: Snowflake,
 		emojiId: Snowflake,
-		{ reason, signal }: Pick<RequestData, 'reason' | 'signal'> = {},
+		{ auth, reason, signal }: Pick<RequestData, 'auth' | 'reason' | 'signal'> = {},
 	) {
-		await this.rest.delete(Routes.guildEmoji(guildId, emojiId), { reason, signal });
+		await this.rest.delete(Routes.guildEmoji(guildId, emojiId), { auth, reason, signal });
 	}
 
 	/**
@@ -687,9 +824,10 @@ export class GuildsAPI {
 	public async getScheduledEvents(
 		guildId: Snowflake,
 		query: RESTGetAPIGuildScheduledEventsQuery = {},
-		{ signal }: Pick<RequestData, 'signal'> = {},
+		{ auth, signal }: Pick<RequestData, 'auth' | 'signal'> = {},
 	) {
 		return this.rest.get(Routes.guildScheduledEvents(guildId), {
+			auth,
 			query: makeURLSearchParams(query),
 			signal,
 		}) as Promise<RESTGetAPIGuildScheduledEventsResult>;
@@ -706,9 +844,10 @@ export class GuildsAPI {
 	public async createScheduledEvent(
 		guildId: Snowflake,
 		body: RESTPostAPIGuildScheduledEventJSONBody,
-		{ reason, signal }: Pick<RequestData, 'reason' | 'signal'> = {},
+		{ auth, reason, signal }: Pick<RequestData, 'auth' | 'reason' | 'signal'> = {},
 	) {
 		return this.rest.post(Routes.guildScheduledEvents(guildId), {
+			auth,
 			reason,
 			body,
 			signal,
@@ -728,9 +867,10 @@ export class GuildsAPI {
 		guildId: Snowflake,
 		eventId: Snowflake,
 		query: RESTGetAPIGuildScheduledEventQuery = {},
-		{ signal }: Pick<RequestData, 'signal'> = {},
+		{ auth, signal }: Pick<RequestData, 'auth' | 'signal'> = {},
 	) {
 		return this.rest.get(Routes.guildScheduledEvent(guildId, eventId), {
+			auth,
 			query: makeURLSearchParams(query),
 			signal,
 		}) as Promise<RESTGetAPIGuildScheduledEventResult>;
@@ -749,9 +889,10 @@ export class GuildsAPI {
 		guildId: Snowflake,
 		eventId: Snowflake,
 		body: RESTPatchAPIGuildScheduledEventJSONBody,
-		{ reason, signal }: Pick<RequestData, 'reason' | 'signal'> = {},
+		{ auth, reason, signal }: Pick<RequestData, 'auth' | 'reason' | 'signal'> = {},
 	) {
 		return this.rest.patch(Routes.guildScheduledEvent(guildId, eventId), {
+			auth,
 			reason,
 			body,
 			signal,
@@ -769,9 +910,9 @@ export class GuildsAPI {
 	public async deleteScheduledEvent(
 		guildId: Snowflake,
 		eventId: Snowflake,
-		{ reason, signal }: Pick<RequestData, 'reason' | 'signal'> = {},
+		{ auth, reason, signal }: Pick<RequestData, 'auth' | 'reason' | 'signal'> = {},
 	) {
-		await this.rest.delete(Routes.guildScheduledEvent(guildId, eventId), { reason, signal });
+		await this.rest.delete(Routes.guildScheduledEvent(guildId, eventId), { auth, reason, signal });
 	}
 
 	/**
@@ -787,9 +928,10 @@ export class GuildsAPI {
 		guildId: Snowflake,
 		eventId: Snowflake,
 		query: RESTGetAPIGuildScheduledEventUsersQuery = {},
-		{ signal }: Pick<RequestData, 'signal'> = {},
+		{ auth, signal }: Pick<RequestData, 'auth' | 'signal'> = {},
 	) {
 		return this.rest.get(Routes.guildScheduledEventUsers(guildId, eventId), {
+			auth,
 			query: makeURLSearchParams(query),
 			signal,
 		}) as Promise<RESTGetAPIGuildScheduledEventUsersResult>;
@@ -802,8 +944,8 @@ export class GuildsAPI {
 	 * @param guildId - The id of the guild to fetch the templates from
 	 * @param options - The options for fetching the templates
 	 */
-	public async getTemplates(guildId: Snowflake, { signal }: Pick<RequestData, 'signal'> = {}) {
-		return this.rest.get(Routes.guildTemplates(guildId), { signal }) as Promise<RESTGetAPIGuildTemplatesResult>;
+	public async getTemplates(guildId: Snowflake, { auth, signal }: Pick<RequestData, 'auth' | 'signal'> = {}) {
+		return this.rest.get(Routes.guildTemplates(guildId), { auth, signal }) as Promise<RESTGetAPIGuildTemplatesResult>;
 	}
 
 	/**
@@ -814,8 +956,13 @@ export class GuildsAPI {
 	 * @param templateCode - The code of the template to sync
 	 * @param options - The options for syncing the template
 	 */
-	public async syncTemplate(guildId: Snowflake, templateCode: string, { signal }: Pick<RequestData, 'signal'> = {}) {
+	public async syncTemplate(
+		guildId: Snowflake,
+		templateCode: string,
+		{ auth, signal }: Pick<RequestData, 'auth' | 'signal'> = {},
+	) {
 		return this.rest.put(Routes.guildTemplate(guildId, templateCode), {
+			auth,
 			signal,
 		}) as Promise<RESTPutAPIGuildTemplateSyncResult>;
 	}
@@ -833,9 +980,10 @@ export class GuildsAPI {
 		guildId: Snowflake,
 		templateCode: string,
 		body: RESTPatchAPIGuildTemplateJSONBody,
-		{ signal }: Pick<RequestData, 'signal'> = {},
+		{ auth, signal }: Pick<RequestData, 'auth' | 'signal'> = {},
 	) {
 		return this.rest.patch(Routes.guildTemplate(guildId, templateCode), {
+			auth,
 			body,
 			signal,
 		}) as Promise<RESTPatchAPIGuildTemplateResult>;
@@ -849,8 +997,12 @@ export class GuildsAPI {
 	 * @param templateCode - The code of the template to delete
 	 * @param options - The options for deleting the template
 	 */
-	public async deleteTemplate(guildId: Snowflake, templateCode: string, { signal }: Pick<RequestData, 'signal'> = {}) {
-		await this.rest.delete(Routes.guildTemplate(guildId, templateCode), { signal });
+	public async deleteTemplate(
+		guildId: Snowflake,
+		templateCode: string,
+		{ auth, signal }: Pick<RequestData, 'auth' | 'signal'> = {},
+	) {
+		await this.rest.delete(Routes.guildTemplate(guildId, templateCode), { auth, signal });
 	}
 
 	/**
@@ -860,8 +1012,8 @@ export class GuildsAPI {
 	 * @param guildId - The id of the guild to fetch the stickers from
 	 * @param options - The options for fetching the stickers
 	 */
-	public async getStickers(guildId: Snowflake, { signal }: Pick<RequestData, 'signal'> = {}) {
-		return this.rest.get(Routes.guildStickers(guildId), { signal }) as Promise<RESTGetAPIGuildStickersResult>;
+	public async getStickers(guildId: Snowflake, { auth, signal }: Pick<RequestData, 'auth' | 'signal'> = {}) {
+		return this.rest.get(Routes.guildStickers(guildId), { auth, signal }) as Promise<RESTGetAPIGuildStickersResult>;
 	}
 
 	/**
@@ -872,8 +1024,15 @@ export class GuildsAPI {
 	 * @param stickerId - The id of the sticker to fetch
 	 * @param options - The options for fetching the sticker
 	 */
-	public async getSticker(guildId: Snowflake, stickerId: Snowflake, { signal }: Pick<RequestData, 'signal'> = {}) {
-		return this.rest.get(Routes.guildSticker(guildId, stickerId), { signal }) as Promise<RESTGetAPIGuildStickerResult>;
+	public async getSticker(
+		guildId: Snowflake,
+		stickerId: Snowflake,
+		{ auth, signal }: Pick<RequestData, 'auth' | 'signal'> = {},
+	) {
+		return this.rest.get(Routes.guildSticker(guildId, stickerId), {
+			auth,
+			signal,
+		}) as Promise<RESTGetAPIGuildStickerResult>;
 	}
 
 	/**
@@ -886,12 +1045,13 @@ export class GuildsAPI {
 	 */
 	public async createSticker(
 		guildId: Snowflake,
-		{ file, ...body }: Omit<RESTPostAPIGuildStickerFormDataBody, 'file'> & { file: RawFile },
-		{ reason, signal }: Pick<RequestData, 'reason' | 'signal'> = {},
+		{ file, ...body }: CreateStickerOptions,
+		{ auth, reason, signal }: Pick<RequestData, 'auth' | 'reason' | 'signal'> = {},
 	) {
 		const fileData = { ...file, key: 'file' };
 
 		return this.rest.post(Routes.guildStickers(guildId), {
+			auth,
 			appendToFormData: true,
 			body,
 			files: [fileData],
@@ -913,9 +1073,10 @@ export class GuildsAPI {
 		guildId: Snowflake,
 		stickerId: Snowflake,
 		body: RESTPatchAPIGuildStickerJSONBody,
-		{ reason, signal }: Pick<RequestData, 'reason' | 'signal'> = {},
+		{ auth, reason, signal }: Pick<RequestData, 'auth' | 'reason' | 'signal'> = {},
 	) {
 		return this.rest.patch(Routes.guildSticker(guildId, stickerId), {
+			auth,
 			reason,
 			body,
 			signal,
@@ -933,9 +1094,9 @@ export class GuildsAPI {
 	public async deleteSticker(
 		guildId: Snowflake,
 		stickerId: Snowflake,
-		{ reason, signal }: Pick<RequestData, 'reason' | 'signal'> = {},
+		{ auth, reason, signal }: Pick<RequestData, 'auth' | 'reason' | 'signal'> = {},
 	) {
-		await this.rest.delete(Routes.guildSticker(guildId, stickerId), { reason, signal });
+		await this.rest.delete(Routes.guildSticker(guildId, stickerId), { auth, reason, signal });
 	}
 
 	/**
@@ -949,9 +1110,10 @@ export class GuildsAPI {
 	public async getAuditLogs(
 		guildId: Snowflake,
 		query: RESTGetAPIAuditLogQuery = {},
-		{ signal }: Pick<RequestData, 'signal'> = {},
+		{ auth, signal }: Pick<RequestData, 'auth' | 'signal'> = {},
 	) {
 		return this.rest.get(Routes.guildAuditLog(guildId), {
+			auth,
 			query: makeURLSearchParams(query),
 			signal,
 		}) as Promise<RESTGetAPIAuditLogResult>;
@@ -964,8 +1126,9 @@ export class GuildsAPI {
 	 * @param guildId - The id of the guild to fetch the auto moderation rules from
 	 * @param options - The options for fetching the auto moderation rules
 	 */
-	public async getAutoModerationRules(guildId: Snowflake, { signal }: Pick<RequestData, 'signal'> = {}) {
+	public async getAutoModerationRules(guildId: Snowflake, { auth, signal }: Pick<RequestData, 'auth' | 'signal'> = {}) {
 		return this.rest.get(Routes.guildAutoModerationRules(guildId), {
+			auth,
 			signal,
 		}) as Promise<RESTGetAPIAutoModerationRulesResult>;
 	}
@@ -981,9 +1144,10 @@ export class GuildsAPI {
 	public async getAutoModerationRule(
 		guildId: Snowflake,
 		ruleId: Snowflake,
-		{ signal }: Pick<RequestData, 'signal'> = {},
+		{ auth, signal }: Pick<RequestData, 'auth' | 'signal'> = {},
 	) {
 		return this.rest.get(Routes.guildAutoModerationRule(guildId, ruleId), {
+			auth,
 			signal,
 		}) as Promise<RESTGetAPIAutoModerationRuleResult>;
 	}
@@ -999,9 +1163,10 @@ export class GuildsAPI {
 	public async createAutoModerationRule(
 		guildId: Snowflake,
 		body: RESTPostAPIAutoModerationRuleJSONBody,
-		{ reason, signal }: Pick<RequestData, 'reason' | 'signal'> = {},
+		{ auth, reason, signal }: Pick<RequestData, 'auth' | 'reason' | 'signal'> = {},
 	) {
 		return this.rest.post(Routes.guildAutoModerationRules(guildId), {
+			auth,
 			reason,
 			body,
 			signal,
@@ -1021,13 +1186,14 @@ export class GuildsAPI {
 		guildId: Snowflake,
 		ruleId: Snowflake,
 		body: RESTPatchAPIAutoModerationRuleJSONBody,
-		{ reason, signal }: Pick<RequestData, 'reason' | 'signal'> = {},
+		{ auth, reason, signal }: Pick<RequestData, 'auth' | 'reason' | 'signal'> = {},
 	) {
 		return this.rest.patch(Routes.guildAutoModerationRule(guildId, ruleId), {
+			auth,
 			reason,
 			body,
 			signal,
-		}) as Promise<RESTPatchAPIAutoModerationRuleJSONBody>;
+		}) as Promise<RESTPatchAPIAutoModerationRuleResult>;
 	}
 
 	/**
@@ -1035,14 +1201,15 @@ export class GuildsAPI {
 	 *
 	 * @see {@link https://discord.com/developers/docs/resources/auto-moderation#delete-auto-moderation-rule}
 	 * @param guildId - The id of the guild to delete the auto moderation rule from
+	 * @param ruleId - The id of the auto moderation rule to delete
 	 * @param options - The options for deleting the auto moderation rule
 	 */
 	public async deleteAutoModerationRule(
 		guildId: Snowflake,
 		ruleId: Snowflake,
-		{ reason, signal }: Pick<RequestData, 'reason' | 'signal'> = {},
+		{ auth, reason, signal }: Pick<RequestData, 'auth' | 'reason' | 'signal'> = {},
 	) {
-		await this.rest.delete(Routes.guildAutoModerationRule(guildId, ruleId), { reason, signal });
+		await this.rest.delete(Routes.guildAutoModerationRule(guildId, ruleId), { auth, reason, signal });
 	}
 
 	/**
@@ -1053,8 +1220,12 @@ export class GuildsAPI {
 	 * @param userId - The id of the user
 	 * @param options - The options for fetching the guild member
 	 */
-	public async getMember(guildId: Snowflake, userId: Snowflake, { signal }: Pick<RequestData, 'signal'> = {}) {
-		return this.rest.get(Routes.guildMember(guildId, userId), { signal }) as Promise<RESTGetAPIGuildMemberResult>;
+	public async getMember(
+		guildId: Snowflake,
+		userId: Snowflake,
+		{ auth, signal }: Pick<RequestData, 'auth' | 'signal'> = {},
+	) {
+		return this.rest.get(Routes.guildMember(guildId, userId), { auth, signal }) as Promise<RESTGetAPIGuildMemberResult>;
 	}
 
 	/**
@@ -1068,9 +1239,10 @@ export class GuildsAPI {
 	public async searchForMembers(
 		guildId: Snowflake,
 		query: RESTGetAPIGuildMembersSearchQuery,
-		{ signal }: Pick<RequestData, 'signal'> = {},
+		{ auth, signal }: Pick<RequestData, 'auth' | 'signal'> = {},
 	) {
 		return this.rest.get(Routes.guildMembersSearch(guildId), {
+			auth,
 			query: makeURLSearchParams(query),
 			signal,
 		}) as Promise<RESTGetAPIGuildMembersSearchResult>;
@@ -1082,20 +1254,37 @@ export class GuildsAPI {
 	 * @see {@link https://discord.com/developers/docs/resources/guild#modify-guild-member}
 	 * @param guildId - The id of the guild
 	 * @param userId - The id of the user
-	 * @param body - The data to use when editing the guild member
+	 * @param body - The data for editing the guild member
 	 * @param options - The options for editing the guild member
 	 */
 	public async editMember(
 		guildId: Snowflake,
 		userId: Snowflake,
 		body: RESTPatchAPIGuildMemberJSONBody = {},
-		{ reason, signal }: Pick<RequestData, 'reason' | 'signal'> = {},
+		{ auth, reason, signal }: Pick<RequestData, 'auth' | 'reason' | 'signal'> = {},
 	) {
 		return this.rest.patch(Routes.guildMember(guildId, userId), {
+			auth,
 			reason,
 			body,
 			signal,
 		}) as Promise<RESTPatchAPIGuildMemberResult>;
+	}
+
+	/**
+	 * Removes a member from a guild
+	 *
+	 * @see {@link https://discord.com/developers/docs/resources/guild#remove-guild-member}
+	 * @param guildId - The id of the guild
+	 * @param userId - The id of the user
+	 * @param options - The options for removing the guild member
+	 */
+	public async removeMember(
+		guildId: Snowflake,
+		userId: Snowflake,
+		{ auth, reason, signal }: Pick<RequestData, 'auth' | 'reason' | 'signal'> = {},
+	) {
+		return this.rest.delete(Routes.guildMember(guildId, userId), { auth, reason, signal });
 	}
 
 	/**
@@ -1111,9 +1300,9 @@ export class GuildsAPI {
 		guildId: Snowflake,
 		userId: Snowflake,
 		roleId: Snowflake,
-		{ reason, signal }: Pick<RequestData, 'reason' | 'signal'> = {},
+		{ auth, reason, signal }: Pick<RequestData, 'auth' | 'reason' | 'signal'> = {},
 	) {
-		await this.rest.put(Routes.guildMemberRole(guildId, userId, roleId), { reason, signal });
+		await this.rest.put(Routes.guildMemberRole(guildId, userId, roleId), { auth, reason, signal });
 	}
 
 	/**
@@ -1129,9 +1318,9 @@ export class GuildsAPI {
 		guildId: Snowflake,
 		userId: Snowflake,
 		roleId: Snowflake,
-		{ reason, signal }: Pick<RequestData, 'reason' | 'signal'> = {},
+		{ auth, reason, signal }: Pick<RequestData, 'auth' | 'reason' | 'signal'> = {},
 	) {
-		await this.rest.delete(Routes.guildMemberRole(guildId, userId, roleId), { reason, signal });
+		await this.rest.delete(Routes.guildMemberRole(guildId, userId, roleId), { auth, reason, signal });
 	}
 
 	/**
@@ -1141,8 +1330,8 @@ export class GuildsAPI {
 	 * @param templateCode - The code of the template
 	 * @param options - The options for fetching the guild template
 	 */
-	public async getTemplate(templateCode: string, { signal }: Pick<RequestData, 'signal'> = {}) {
-		return this.rest.get(Routes.template(templateCode), { signal }) as Promise<RESTGetAPITemplateResult>;
+	public async getTemplate(templateCode: string, { auth, signal }: Pick<RequestData, 'auth' | 'signal'> = {}) {
+		return this.rest.get(Routes.template(templateCode), { auth, signal }) as Promise<RESTGetAPITemplateResult>;
 	}
 
 	/**
@@ -1150,15 +1339,19 @@ export class GuildsAPI {
 	 *
 	 * @see {@link https://discord.com/developers/docs/resources/guild-template#create-guild-template}
 	 * @param templateCode - The code of the template
-	 * @param body - The data to use when creating the template
+	 * @param body - The data for creating the template
 	 * @param options - The options for creating the template
 	 */
 	public async createTemplate(
 		templateCode: string,
-		body: RESTPostAPITemplateCreateGuildJSONBody,
-		{ signal }: Pick<RequestData, 'signal'> = {},
+		body: RESTPostAPIGuildTemplatesJSONBody,
+		{ auth, signal }: Pick<RequestData, 'auth' | 'signal'> = {},
 	) {
-		return this.rest.post(Routes.template(templateCode), { body, signal }) as Promise<RESTPostAPIGuildTemplatesResult>;
+		return this.rest.post(Routes.template(templateCode), {
+			auth,
+			body,
+			signal,
+		}) as Promise<RESTPostAPIGuildTemplatesResult>;
 	}
 
 	/**
@@ -1166,21 +1359,134 @@ export class GuildsAPI {
 	 *
 	 * @see {@link https://discord.com/developers/docs/resources/webhook#get-guild-webhooks}
 	 * @param id - The id of the guild
+	 * @param options - The options for fetching the webhooks
 	 */
-	public async getWebhooks(id: Snowflake) {
-		return this.rest.get(Routes.guildWebhooks(id)) as Promise<RESTGetAPIGuildWebhooksResult>;
+	public async getWebhooks(id: Snowflake, { auth, signal }: Pick<RequestData, 'auth' | 'signal'> = {}) {
+		return this.rest.get(Routes.guildWebhooks(id), { auth, signal }) as Promise<RESTGetAPIGuildWebhooksResult>;
 	}
 
 	/**
-	 * Sets the voice state for the current user
+	 * Fetches a guild onboarding
 	 *
-	 * @see {@link https://discord.com/developers/docs/resources/guild#modify-current-user-voice-state}
+	 * @see {@link https://discord.com/developers/docs/resources/guild#get-guild-onboarding}
 	 * @param guildId - The id of the guild
-	 * @param body - The options to use when setting the voice state
+	 * @param options - The options for fetching the guild onboarding
 	 */
-	public async setVoiceState(guildId: Snowflake, body: RESTPatchAPIGuildVoiceStateCurrentMemberJSONBody = {}) {
-		return this.rest.patch(Routes.guildVoiceState(guildId, '@me'), {
+	public async getOnboarding(guildId: Snowflake, { auth, signal }: Pick<RequestData, 'auth' | 'signal'> = {}) {
+		return this.rest.get(Routes.guildOnboarding(guildId), { auth, signal }) as Promise<RESTGetAPIGuildOnboardingResult>;
+	}
+
+	/**
+	 * Edits a guild onboarding
+	 *
+	 * @see {@link https://discord.com/developers/docs/resources/guild#modify-guild-onboarding}
+	 * @param guildId - The id of the guild
+	 * @param body - The data for editing the guild onboarding
+	 * @param options - The options for editing the guild onboarding
+	 */
+	public async editOnboarding(
+		guildId: Snowflake,
+		body: RESTPutAPIGuildOnboardingJSONBody,
+		{ auth, reason, signal }: Pick<RequestData, 'auth' | 'reason' | 'signal'> = {},
+	) {
+		return this.rest.put(Routes.guildOnboarding(guildId), {
+			auth,
+			reason,
 			body,
-		}) as Promise<RESTPatchAPIGuildVoiceStateCurrentMemberResult>;
+			signal,
+		}) as Promise<RESTPutAPIGuildOnboardingResult>;
+	}
+
+	/**
+	 * Fetches all the soundboard sounds for a guild
+	 *
+	 * @see {@link https://discord.com/developers/docs/resources/soundboard#list-guild-soundboard-sounds}
+	 * @param guildId - The id of the guild to fetch the soundboard sounds for
+	 * @param options - The options for fetching the soundboard sounds
+	 */
+	public async getSoundboardSounds(guildId: Snowflake, { auth, signal }: Pick<RequestData, 'auth' | 'signal'> = {}) {
+		return this.rest.get(Routes.guildSoundboardSounds(guildId), {
+			auth,
+			signal,
+		}) as Promise<RESTGetAPIGuildSoundboardSoundsResult>;
+	}
+
+	/**
+	 * Fetches a soundboard sound for a guild
+	 *
+	 * @see {@link https://discord.com/developers/docs/resources/soundboard#get-guild-soundboard-sound}
+	 * @param guildId - The id of the guild to fetch the soundboard sound for
+	 * @param soundId - The id of the soundboard sound to fetch
+	 * @param options - The options for fetching the soundboard sound
+	 */
+	public async getSoundboardSound(
+		guildId: Snowflake,
+		soundId: Snowflake,
+		{ auth, signal }: Pick<RequestData, 'auth' | 'signal'> = {},
+	) {
+		return this.rest.get(Routes.guildSoundboardSound(guildId, soundId), {
+			auth,
+			signal,
+		}) as Promise<RESTGetAPIGuildSoundboardSoundResult>;
+	}
+
+	/**
+	 * Creates a new soundboard sound for a guild
+	 *
+	 * @see {@link https://discord.com/developers/docs/resources/soundboard#create-guild-soundboard-sound}
+	 * @param guildId - The id of the guild to create the soundboard sound for
+	 * @param body - The data for creating the soundboard sound
+	 * @param options - The options for creating the soundboard sound
+	 */
+	public async createSoundboardSound(
+		guildId: Snowflake,
+		body: RESTPostAPIGuildSoundboardSoundJSONBody,
+		{ auth, reason, signal }: Pick<RequestData, 'auth' | 'reason' | 'signal'> = {},
+	) {
+		return this.rest.post(Routes.guildSoundboardSounds(guildId), {
+			auth,
+			body,
+			reason,
+			signal,
+		}) as Promise<RESTPostAPIGuildSoundboardSoundResult>;
+	}
+
+	/**
+	 * Edits a soundboard sound for a guild
+	 *
+	 * @see {@link https://discord.com/developers/docs/resources/soundboard#modify-guild-soundboard-sound}
+	 * @param guildId - The id of the guild to edit the soundboard sound for
+	 * @param soundId - The id of the soundboard sound to edit
+	 * @param body - The data for editing the soundboard sound
+	 * @param options - The options for editing the soundboard sound
+	 */
+	public async editSoundboardSound(
+		guildId: Snowflake,
+		soundId: Snowflake,
+		body: RESTPatchAPIGuildSoundboardSoundJSONBody,
+		{ auth, reason, signal }: Pick<RequestData, 'auth' | 'reason' | 'signal'> = {},
+	) {
+		return this.rest.patch(Routes.guildSoundboardSound(guildId, soundId), {
+			auth,
+			body,
+			reason,
+			signal,
+		}) as Promise<RESTPatchAPIGuildSoundboardSoundResult>;
+	}
+
+	/**
+	 * Deletes a soundboard sound for a guild
+	 *
+	 * @see {@link https://discord.com/developers/docs/resources/soundboard#delete-guild-soundboard-sound}
+	 * @param guildId - The id of the guild to delete the soundboard sound for
+	 * @param soundId - The id of the soundboard sound to delete
+	 * @param options - The options for deleting the soundboard sound
+	 */
+	public async deleteSoundboardSound(
+		guildId: Snowflake,
+		soundId: Snowflake,
+		{ auth, reason, signal }: Pick<RequestData, 'auth' | 'reason' | 'signal'> = {},
+	) {
+		await this.rest.delete(Routes.guildSoundboardSound(guildId, soundId), { auth, reason, signal });
 	}
 }
